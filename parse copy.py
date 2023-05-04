@@ -146,7 +146,7 @@ class GifData:
 		self.img_descriptor = ImageDescriptor()
 
 class ImageData:
-	def __init__(self, bytez):
+	def __init__(bytez):
 		self.bytez = bytez
 	
 def get_sub_block_size(bytez, offset):
@@ -173,9 +173,6 @@ class RGBTriplet:
 
 	def __repr__(self):
 		return str(self)
-
-	def to_hex_str(self):
-		return f'#{self.r}{self.g}{self.b}'
 
 def display_color_table(lst, name=''):
 	import numpy as np
@@ -344,95 +341,52 @@ def reshape_2d(lst, num):
 def is_bit_set(data, bit_num):
 	return bool(((1 << bit_num) & data))
 
-# TODO: create our own hash table using python list with our own hash function if there is intensive memory usage issues
 
-
-
-# TODO: iniitialize the code table as a hash table which is dependent on the code size given
-# NOTE: assume that we already know what code_size to use
-def init_gif_lzw_code_table(color_table, code_size=12):
-	# The GIF format allows sizes as small as 2 bits and as large as 12 bits. 
-	# This minimum code size value is typically the number of bits/pixel of the image.
-
-	# NOTE: the color table is a unique list of RGBTriplets
-	N = len(color_table)  # N , the color table size
-	
-	# NOTE: raise exception if 2 ^ code_size >= color_table_size + 2 (means that the code size is not enough to support the number of possible color indices in the color table   )
-	assert(pow(2, code_size) >= N + 2) # +2 because of clear code and EOI code
-
-	# initiailize code table as a hash table, add a code for each color in the color table (covering all the roots)
-	# NOTE: using hash table speeds up the searching for a code string for each iteration
-	code_table = {}
-	for i in range(N):
-		rgb_triplet = color_table[i]
-		code_table[str(rgb_triplet)] = i	# adds each ASCII character with associated code to the hash table, e.g. table['A'] = 97
-	
-	# add clear code and EOI code
-	i += 1
-	code_table["<CC>"] = i
-	i += 1
-	code_table["<EOI>"] = i
-
-	return code_table
-
-
-# lzw compression
-def lzw_compression(rgb_triplet_image_data, color_table, code_size=2, string_form=True):
+# TODO: building the lzw code table for image data compression/decompression
+def build_lzw_table(color_table, data, string_form = True):
 	"""
-	implemented with the pseudocode given by: http://web.archive.org/web/20050217131148/http://www.danbbs.dk/~dino/whirlgif/lzw.html
-
+	inspired by: http://web.archive.org/web/20050217131148/http://www.danbbs.dk/~dino/whirlgif/lzw.html
+ 
 	Args:
+		color_table (_type_): _description_
 		data (_type_): _description_
 		string_form (bool, optional): _description_. Defaults to True.
+
+	Returns:
+		_type_: _description_
+  
 	"""
-	result = []		
-	N = len(color_table)
-	code_table = init_gif_lzw_code_table(color_table, code_size)
-
+    
+    # 1: initiailize code table as a hash table, add a code for each color in the color table
+    
+	table = {}
+ 
+    for i in range(256):
+        table[chr(i)] = i
         
-    # the next position to add to the code table
-	code = N + 3
-    # output <CC> as the very first code
-	result.append(code_table["<CC>"])
-
-	w = ''			# prefix is empty
-	# loop through every character K in charstream
-	for rgb_triplet in rgb_triplet_image_data:
-		
-		# TODO: make sure that wc fits into the code size used for the table, else outputs <CC> clear code and then  reinitialize code table when we exceed 12 bits (code #4095)
-		if code == 4095:
-			# reinitialize code table
-
-		wc = w + rgb_triplet.to_hex_str()  # current string = prefix + char K  ; the char K in this case is the rgb hex string
-		# NOTE: make wc is concatenated RGB triplets in hex string format
-		if wc in code_table:
-			w = wc	# prefix = current string
-		else:
-			result.append(code_table[w])  # output code into codestream
-			code_table[wc] = code		  # add current string to code table
-			code += 1
-			w = rgb_triplet.to_hex_str()  # prefix = character K
-
-	if string_form:
-        # convert the result into a encoded string 
-		string = ""
-		for item in result:
-			string += item
-		return string
-	else:
-		return result
-                
-
-# TODO:
-def lzw_decompression(encoded_data):
+    # start K with next char in charstream
+    code = 256
+    
+    
     result = []
-    
-    
-    
+    w = ''
+    for c in data:
+        wc = w + c  # current string
+        if wc in table:
+            w = wc
+        else:
+            result.append(table[w])  # output code for the 
+            table[wc] = code
+            code += 1
+            w = c
+    if w:
+        result.append(table[w])
+        
+        
+    # convert the result into a encoded string 
     
     return result
-                
-                
+
 
 if __name__ == '__main__':
 	import sys
