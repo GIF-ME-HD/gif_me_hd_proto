@@ -1,14 +1,19 @@
 import struct
+from PIL import GifImagePlugin
+from PIL import Image
+from io import BytesIO
+import imageio.v3 as iio
+import numpy as np
+import os
 HEADER = b'\x47\x49\x46\x38\x39\x61' #GIF89a
 
-def parseGIF(bytez):
 
+def parseGIF(bytez):
     # HEADER Block (Byte 0 -> 5)
     # Verify is GIF + Right Version
-    if not bytez.startswith(HEADER):
-        print('This is not a GIF89a compliant GIF File!')
-        return None
-    
+    # if not bytez.startswith(HEADER):
+    #     print('This is not a GIF89a compliant GIF File!')
+    #     return None
 
     bytearr = bytearray(bytez)
 
@@ -34,19 +39,118 @@ def parseGIF(bytez):
         for i in range(2^size_GCT):
             GCT[i] = (bytearr[0x14+3*i], bytearr[0x14+3*i+1], bytearr[0x14+3*i+2])
     
-    # TODO Image Descriptor & Frame
+    #TODO Image Descriptor & Frame
     # Image Descriptor & Each Frame
     # For amount of frames, parse image descriptor for frame and frame data
+    
 
+    
     
     
 # needs to add a code for each color in the color table
 def build_lzw_codetable(colortable):
     # build the code table
     pass
+
+
+def gif_lzw_decoding(filename):
+    # reader = iio.get_reader('DancingPeaks.gif')
+    reader = iio.imread(filename, extension=".gif")
+    # reader2 = iio.mimread('DancingPeaks.gif', extension=".gif")
+    # meta = iio.immeta(filename, extension=".gif")
     
-def gif_lzw_decoding():
-    # initialize code table
+    # with iio.imread('DancingPeaks.gif') as reader:
+        # Loop over each frame in the GIF file
+    lst = []
+    for i, frame in enumerate(reader):
+        # Get the image data for the current frame
+        image_data = frame.tobytes()
+        # frame.properties
+        props = iio.improps(filename, index=i)
+        meta = iio.immeta(filename, index=i)
+        
+        # length = len(bytearray(image_data))
+        lst.append(image_data)
+        try:
+            open(f'framedata/{filename}/frame{str(i)}.txt', 'wb')
+        except FileNotFoundError:
+            os.makedirs(f'framedata/{filename}')
+        with open(f'framedata/{filename}/frame{str(i)}.txt', 'wb') as f:
+            f.write(image_data)
+            
+    similarity = test_similar(lst)
+
+    return similarity
+
+
+
+def visualize_frame(txt_filename, gif_filename):    
+    with Image.open(gif_filename) as giffile:
+        width,height = giffile.width, giffile.height
+    
+    with open(txt_filename, 'rb') as f:
+        image_bytes = f.read()
+        
+    # Use Pillow's Image.open() method to open the image from the stream
+    # image = Image.open(stream)
+    # image = Image.frombytes(image_bytes)
+    # print(len(stream))
+    # width,height = 435,343
+    arr = np.asarray(bytearray(image_bytes))
+    
+    arr = arr.reshape((height, width, 3))
+    
+    im = Image.fromarray(arr, mode="RGB")
+    # im.getpixel((0, 0))  # (44, 1, 0)
+
+    # Now you can use the image variable to display or manipulate the image
+    im.show()
+        
+    return None
+    
+
+def test_similar(lst):
+    flag = True
+    for i in range(len(lst)):
+        for j in range(len(lst)):
+            if not (lst[i] == lst[j]):
+                flag = False
+                return flag
+    return flag
+
+
+
+# def gif_lzw_decoding():
+#     # initialize code table
+#     img = Image.open('DancingPeaks.gif')
+    
+#     data = img.getdata()
+#     flag = img.is_animated
+    
+#     # frame1 = img.seek()
+    
+#     img.show()
+    
+#     lst = []
+#     lst.append(img.tobytes())
+#     img.save('frame0.gif')
+#     for i in range(1, img.n_frames):
+#         # img.show()
+#         img.seek(img.tell()+1)
+#         lst.append(img.tobytes())
+#         img.save('frame'+str(i)+'.gif')
+    
+
+#     for i in range(len(lst)):
+#         # Convert bytes to image using Pillow
+#         with Image.open(BytesIO(lst[i])) as im:
+#             # Do something with the image, e.g. display or save it
+#             im.show()
+            
+    
+    
+#     img.close()
+    
     
     
     
@@ -131,14 +235,10 @@ with open('test.gif', 'rb') as f:
     bytez = f.read()
 parseGIF(bytez)
 
-
 class GIF:
     def __init__(self, size):
         pass
     
-    
-    
-
 class Frame:
     def __init__(self):
         pass
@@ -147,10 +247,12 @@ class Frame:
         pass
     
     
+if __name__ == "__main__":
+    FILENAME = "local_color.gif"
+    # gif_lzw_decoding(FILENAME)
+    visualize_frame(f'framedata/{FILENAME}/frame0.txt', FILENAME)
     
-
-
-
-
     
-
+    
+    
+    
