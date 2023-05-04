@@ -80,15 +80,35 @@ def gif_lzw_decoding(filename):
             
     similarity = test_similar(lst)
 
-    return similarity
+    return lst
+
+
+def txt_to_jpg(txt_path, jpg_path, width, height):
+    # create a new image object
+    image = Image.new("RGB", (width, height))
+
+    # open the text file and read the RGB data
+    with open(txt_path, "r") as f:
+        data = f.read().splitlines()
+
+    # loop through the data and set the pixel colors
+    for y in range(height):
+        for x in range(width):
+            # get the RGB values for the current pixel
+            r, g, b = map(int, data[y * width + x].split(","))
+            # set the pixel color
+            image.putpixel((x, y), (r, g, b))
+
+    # save the image as a JPG file
+    image.save(jpg_path)
 
 
 
-def visualize_frame(txt_filename, gif_filename):    
+def visualize_frame(directory_path, txt_filename, gif_filename, output_format="open"):    
     with Image.open(gif_filename) as giffile:
         width,height = giffile.width, giffile.height
     
-    with open(txt_filename, 'rb') as f:
+    with open(f"{directory_path}/{txt_filename}", 'rb') as f:
         image_bytes = f.read()
         
     # Use Pillow's Image.open() method to open the image from the stream
@@ -104,10 +124,23 @@ def visualize_frame(txt_filename, gif_filename):
     # im.getpixel((0, 0))  # (44, 1, 0)
 
     # Now you can use the image variable to display or manipulate the image
-    im.show()
+    if output_format == "open":
+        im.show()
+    elif output_format == "file":
+        txt_to_jpg(f"{directory_path}/{txt_filename}", f"./framedata/jpg_output/{txt_filename[:-3]}.jpg", width, height)
+    else:
+        print("Invalid output format")
         
     return None
     
+    
+# get all filenames in directory
+def get_filenames(directory):
+    filenames = []
+    for filename in os.listdir(directory):
+        filenames.append(filename)
+    return filenames
+
 
 def test_similar(lst):
     flag = True
@@ -235,9 +268,11 @@ with open('test.gif', 'rb') as f:
     bytez = f.read()
 parseGIF(bytez)
 
+
 class GIF:
     def __init__(self, size):
         pass
+    
     
 class Frame:
     def __init__(self):
@@ -247,10 +282,16 @@ class Frame:
         pass
     
     
+    
+    
+    
 if __name__ == "__main__":
-    FILENAME = "local_color.gif"
-    # gif_lzw_decoding(FILENAME)
-    visualize_frame(f'framedata/{FILENAME}/frame0.txt', FILENAME)
+    GIF_FILENAME = "local_color.gif"
+    # gif_lzw_decoding(GIF_FILENAME)
+    visualize_frame(f"./framedata/{GIF_FILENAME}", f'frame0.txt', GIF_FILENAME)
+    # filenames = get_filenames(f"./framedata/{GIF_FILENAME}/")
+    # for filename in filenames:
+    #     visualize_frame(f"./framedata/{GIF_FILENAME}", filename, GIF_FILENAME, output_format="file")
     
     
     
