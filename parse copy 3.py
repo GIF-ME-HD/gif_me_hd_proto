@@ -150,9 +150,12 @@ TODO: make changes to GifFrame such that it has:
 """
 class GifFrame:
     def __init__(self):
-        self.extensions = []
-        self.img_descriptor = None    #  NOTE: the img descriptor contians the LCT (local color table) as well as the width and height of the frame
+        self.img_descriptor = ImageDescriptor()
+        self.lct = None
         self.frame_img_data = None # NOTE: in the form of a 1D list of RGB triplets
+        self.plaintext_extenxsion = None
+        self.application_extenxsion = None
+        self.comment_extenxsion = None
 
 class GifData:
     def __init__(self):
@@ -161,15 +164,18 @@ class GifData:
         self.width = None
         self.height = None
         self.frames = [GifFrame()]
+        # TODO: move this to GifFrame
+        self.img_descriptor = ImageDescriptor()
 
 
-# TODO: rework the ImageData class for each frame instead of handling for the whole GifData class
 class ImageData:
-    def __init__(self, bytez):
+    def __init__(self, bytez_lst, width, height):
+        self.bytez_lst = bytez_lst
         # TODO: now we still assume that each image frame matches the canva size of the GIF
-        self.bytez = bytez     
-        self.rgb_lst = None
-    
+        self.width = width
+        self.height = height
+        self.frames_rgb = None
+        
     def __repr__(self):
         string = f"ImageData[{self.width}x{self.height})]\n"
         for i in range(len(self.frames_rgb)):
@@ -177,13 +183,13 @@ class ImageData:
         return string
     
     # TODO: returns list of raw bytes as 2D list of imagedata
-    def bytez_2_frames_rgb(bytez_lst, width, height):
+    def bytez_2_frames_rgb(self):
         frames_rgb = []
         # calculate the size of the image in bytes
-        image_size = width * height * 3
+        image_size = self.width * self.height * 3
         # loop through each frames' raw bytes
-        for i in range(len(bytez_lst)):
-            bytez = bytez_lst[i]
+        for i in range(len(self.bytez_lst)):
+            bytez = self.bytez_lst[i]
             # unpack the raw bytes into RGB triplets
             frame_rgb_data = []
             for j in range(0, image_size, 3):
@@ -218,7 +224,8 @@ class ImageData:
         # similarity = test_similar(lst)
 
         return raw_bytes_lst
-                        
+                
+        
         
 def get_sub_block_size(bytez, offset):
     start_index = offset
@@ -269,14 +276,12 @@ class ImageDescriptor:
         self.img_top = None
         self.width = None
         self.height = None
-        
+
         self.lct_flag = None
         self.interlace_flag = None
         self.sort_flag = None
 
         self.lct_size = None
-        
-        self.lct = None
     
     @staticmethod
     def is_image_descriptor(bytez, offset):
@@ -303,6 +308,7 @@ class GifReader:
         return 2 ** (n+1)
     
     def parse(self):
+        image_descriptors = []
         
         gif_data = GifData()
         gif_data.width = self.dv.read_short()	
@@ -332,23 +338,22 @@ class GifReader:
         display_color_table(reshaped_palette, "GCT")
 
         GIF_TRAILER = 0x3B
-        frame_ctr = 0
-        image_descriptors = []
+        cur_frame = 0
+
         #NOTE: start parsing the frames
         while not self.dv.is_done():
-            # if end of bytez
-            if self.dv.peek_byte() == GIF_TRAILER or self.dv.offset == len(self.bytez)-1:
-                print("DONE")
-                self.dv.advance(1)
-                
-            # TODO: handles all extension, by saving the bytez associated with the extensions first
-            elif Extension.is_extension(self.bytez, self.dv.offset):
+            # TODO: handles all extension, just skips pass them ; if possible jsut save the bytez associated with the extensions first
+            if Extension.is_extension(self.bytez, self.dv.offset):
                 print("EXTENSION")
                 my_ext = Extension.create_extension(self.bytez, self.dv.offset)
                 self.dv.advance(my_ext.size)
-                gif_data.frames[frame_ctr].extensions.append(my_ext)
+                gif_data.frames[cur_frame].extensions.append(my_ext)
                 print(my_ext)
                 # print(f"After extension: {self.bytez[self.dv.offset:]}")
+
+
+
+
 
             elif ImageDescriptor.is_image_descriptor(self.bytez, self.dv.offset):
                 img_descriptor = ImageDescriptor()
@@ -375,25 +380,31 @@ class GifReader:
                     print("Palette:")
                     reshaped_palette = reshape_2d(img_descriptor.lct, int(sqrt(num_bytes)))
                     print(reshaped_palette)
-                    display_color_table(reshaped_palette, "LCT " + str(frame_ctr))
+                    display_color_table(reshaped_palette, "LCT " + str(cur_frame))
 
                 gif_data.img_descriptor = img_descriptor
                 # NOTE: add to list of image descriptors
                 image_descriptors.append(img_descriptor)
 
+            elif self.dv.peek_byte() == GIF_TRAILER or self.dv.offset == len(self.bytez)-1:
+                print("DONE")
+                self.dv.advance(1)
+
             # It is ImageData
             else:
-                frame_ctr += 1
+                cur_frame += 1
                 gif_data.frames.append(GifFrame())
                 # Ignore first byte
                 print("IMAGE DATA")
-                # import binascii
+                import binascii
                 # print(binascii.hexlify(self.bytez[self.dv.offset:]))
+    
 
                 #TODO: do something with the size, the parsing for the lzw-encoded image data starts here
                 minimum_code_size = self.dv.read_byte()
                 size = get_sub_block_size(self.bytez, self.dv.offset)
                 # print(binascii.hexlify(self.bytez[self.dv.offset-1:self.dv.offset+size]))
+                print(size)
     
                 self.dv.advance(size)
     
@@ -402,48 +413,26 @@ class GifReader:
 
         # TODO: alternatively parse the GIF image data in parallel to the other stuff
         # NOTE: we still assume that image frames sizes  = canvas size
-        imagedata_bytez_lst = ImageData.gif_lzw_decoding(f"./DancingPeaks.gif", write_raw_bytes=True)
-        frames_rgbs = ImageData.bytez_2_frames_rgb(imagedata_bytez_lst, gif_data.width, gif_data.height)
+        bytez_lst = ImageData.gif_lzw_decoding(f"./DancingPeaks.gif", write_raw_bytes=True)
+        imagedata = ImageData(bytez_lst=bytez_lst, width=gif_data.width, height=gif_data.height)
+        rgbs_lst = imagedata.bytez_2_frames_rgb()
         
-        imagedatas = []
-        for i in range(frame_ctr):
-            imagedata = ImageData(imagedata_bytez_lst[i])
-            imagedata.rgb_lst = frames_rgbs[i]
-            imagedatas.append(imagedata)
+        # TODO: add ImageData to GifData
         
-        # TODO: add ImageData and ImgDescriptor to GifFrames
-        for i in range(frame_ctr):
-            gif_data.frames[i].img_descriptor = image_descriptors[i]
-            gif_data.frames[i].frame_img_data = imagedatas[i]
-
         return gif_data
 
 
 class GIF_encoder:
     def __init__(self, filename):
         self.filename = filename
-        self.bytes = None   # 
-        
-    def add_bytes(self, bytez, places):
-        # shift left for self.bytez by places
-        self.bytez = self.bytez << places
-        # add the bytez to the self.bytez
-        self.bytez = self.bytez | bytez
         
     # TODO: the output is a gif file that is built from a GIFData object
-    def encode(self, gif_data):
-        # NOTE: use shifting to add bytes to bytes to the 
-        # the header part
-        
-        
-        
-        # 
-        
+    def to_gif_file(self, gif_data):
         pass        
+        
 
-    
-    
-    
+
+
 
 def reshape_2d(lst, num):
     ret = [None] * num
@@ -462,7 +451,6 @@ def reshape_2d(lst, num):
 
 def is_bit_set(data, bit_num):
     return bool(((1 << bit_num) & data))
-
 
 
 
