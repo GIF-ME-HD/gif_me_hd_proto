@@ -1,5 +1,5 @@
 import struct
-from .data import RGBTriplet
+from .data import RGB
 
 class DataReader:
     def __init__(self, filename, offset=0):
@@ -30,7 +30,7 @@ class DataReader:
         r = self.read_byte()
         g = self.read_byte()
         b = self.read_byte()
-        return RGBTriplet(r, g, b)
+        return RGB(r, g, b)
 
     def read_triplet_list(self, num):
         ret = []
