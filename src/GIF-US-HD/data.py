@@ -17,9 +17,18 @@ class GifFrame:
 class GifData:
     def __init__(self):
         # TODO: Add the others
-        self.gct = None
         self.width = None
         self.height = None
+
+        self.gct_flag = False
+        self.gct_size = 0
+        self.gct = None
+
+        self.sort_flag = False
+        self.color_resolution = None
+        self.bg_color_index = 0
+        self.pixel_aspect_ratio = 0
+
         self.frames:list[GifFrame] = []
 
 
@@ -48,7 +57,7 @@ class ImageData:
             frame_rgb_data = []
             for j in range(0, image_size, 3):
                 r, g, b = struct.unpack("BBB", bytez[j:j+3])
-                frame_rgb_data.append(RGBTriplet(r, g, b))
+                frame_rgb_data.append(RGB(r, g, b))
             # append rgb triplets in this frame to 
             frames_rgb.append(frame_rgb_data)
         return frames_rgb
@@ -75,7 +84,7 @@ class ImageDescriptor:
             raise Exception("Invalid offset access for image descriptor!!")
         return bytez[offset] == IMAGE_SEPARATOR
     
-class RGBTriplet:
+class RGB:
     def __init__(self, r, g, b):
         self.r = r
         self.g = g
@@ -88,5 +97,5 @@ class RGBTriplet:
         return str(self)
 
     @staticmethod
-    def to_hex_str(rgb:RGBTriplet):
+    def to_hex_str(rgb:RGB):
         return f'#{rgb.r}{rgb.g}{rgb.b}'
