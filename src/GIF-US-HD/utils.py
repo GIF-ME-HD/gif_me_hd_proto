@@ -13,3 +13,18 @@ def get_sub_block_size(bytez, offset):
         if sample == 0:
             size += 1
     return size
+
+def reshape_2d(lst, num):
+    ret = [None] * num
+    for _ in range(num):
+        ret[_] = [None] * num
+
+    i = 0
+    for y in range(num):
+        for x in range(num):
+            to_add = None
+            if i < len(lst):
+                to_add = lst[i]
+                i += 1
+            ret[y][x] = to_add
+    return ret

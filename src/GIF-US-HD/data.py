@@ -52,6 +52,28 @@ class ImageData:
             # append rgb triplets in this frame to 
             frames_rgb.append(frame_rgb_data)
         return frames_rgb
+
+class ImageDescriptor:
+    def __init__(self):
+        self.img_left = None
+        self.img_top = None
+        self.width = None
+        self.height = None
+        
+        self.lct_flag = None
+        self.interlace_flag = None
+        self.sort_flag = None
+
+        self.lct_size = None
+        
+        self.lct = None
+    
+    @staticmethod
+    def is_image_descriptor(bytez, offset):
+        IMAGE_SEPARATOR = 0x2C
+        if offset >= len(bytez):
+            raise Exception("Invalid offset access for image descriptor!!")
+        return bytez[offset] == IMAGE_SEPARATOR
     
 class RGBTriplet:
     def __init__(self, r, g, b):
