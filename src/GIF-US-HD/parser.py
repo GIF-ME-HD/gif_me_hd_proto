@@ -7,9 +7,7 @@ DEFAULT_HEADER = b"GIF89a"
 
 class GifReader:
     def __init__(self, filename):
-        with open(filename, "rb") as f:
-            self.bytez = f.read()
-        self.dv = DataReader(self.bytez, len(DEFAULT_HEADER))
+        self.data_reader:DataReader = DataReader(filename)
         self.__validate_header()
     
     def __validate_header(self):
@@ -22,25 +20,25 @@ class GifReader:
     def get_real_gct_size(n):
         return 2 ** (n+1)
     
-    def parse(self):
+    def parse(self) -> GifData:
         
         gif_data = GifData()
-        gif_data.width = self.dv.read_short()	
-        gif_data.height= self.dv.read_short()	
+        gif_data.width = self.data_reader.read_short()	
+        gif_data.height= self.data_reader.read_short()	
 
-        packed_field = self.dv.read_byte()
+        packed_field = self.data_reader.read_byte()
         gif_data.gct_size = packed_field & 0b000_0111
         gif_data.sort_flag = is_bit_set(packed_field, 3)
         gif_data.color_resolution = packed_field & 0b0111_0000
         gif_data.gct_flag = is_bit_set(packed_field, 7)
 
-        gif_data.bf_color_index = self.dv.read_byte()
-        gif_data.pixel_aspect_ratio = self.dv.read_byte()
+        gif_data.bf_color_index = self.data_reader.read_byte()
+        gif_data.pixel_aspect_ratio = self.data_reader.read_byte()
 
         gif_data.gct = None
         if gif_data.gct_flag:
             num_bytes = GifReader.get_real_gct_size(gif_data.gct_size)
-            gct = self.dv.read_triplet_list(num_bytes)
+            gct = self.data_reader.read_triplet_list(num_bytes)
             gif_data.gct = gct
 
         
@@ -55,31 +53,31 @@ class GifReader:
         frame_ctr = 0
         image_descriptors = []
         #NOTE: start parsing the frames
-        while not self.dv.is_done():
+        while not self.data_reader.is_done():
             # if end of bytez
-            if self.dv.peek_byte() == GIF_TRAILER or self.dv.offset == len(self.bytez)-1:
+            if self.data_reader.peek_byte() == GIF_TRAILER or self.data_reader.offset == len(self.bytez)-1:
                 print("DONE")
-                self.dv.advance(1)
+                self.data_reader.advance(1)
                 
             # TODO: handles all extension, by saving the bytez associated with the extensions first
-            elif Extension.is_extension(self.bytez, self.dv.offset):
+            elif Extension.is_extension(self.bytez, self.data_reader.offset):
                 print("EXTENSION")
-                my_ext = Extension.create_extension(self.bytez, self.dv.offset)
-                self.dv.advance(my_ext.size)
+                my_ext = Extension.create_extension(self.bytez, self.data_reader.offset)
+                self.data_reader.advance(my_ext.size)
                 gif_data.frames[frame_ctr].extensions.append(my_ext)
                 print(my_ext)
                 # print(f"After extension: {self.bytez[self.dv.offset:]}")
 
-            elif ImageDescriptor.is_image_descriptor(self.bytez, self.dv.offset):
+            elif ImageDescriptor.is_image_descriptor(self.bytez, self.data_reader.offset):
                 img_descriptor = ImageDescriptor()
                 print("IMAGE DESCRIPTOR")
-                self.dv.advance(1)
-                img_descriptor.left = self.dv.read_short()
-                img_descriptor.top = self.dv.read_short()
-                img_descriptor.width = self.dv.read_short()
-                img_descriptor.height = self.dv.read_short()
+                self.data_reader.advance(1)
+                img_descriptor.left = self.data_reader.read_short()
+                img_descriptor.top = self.data_reader.read_short()
+                img_descriptor.width = self.data_reader.read_short()
+                img_descriptor.height = self.data_reader.read_short()
 
-                packed = self.dv.read_byte()
+                packed = self.data_reader.read_byte()
 
                 img_descriptor.lct_size = packed & 0b0000_0111
                 img_descriptor.sort_flag = is_bit_set(packed, 5)
@@ -88,7 +86,7 @@ class GifReader:
 
                 if img_descriptor.lct_flag:
                     num_bytes = GifReader.get_real_gct_size(gif_data.img_descriptor.lct_size)
-                    lct = self.dv.read_triplet_list(num_bytes)
+                    lct = self.data_reader.read_triplet_list(num_bytes)
                     img_descriptor.lct = lct
 
                     from math import sqrt
@@ -111,11 +109,11 @@ class GifReader:
                 # print(binascii.hexlify(self.bytez[self.dv.offset:]))
 
                 #TODO: do something with the size, the parsing for the lzw-encoded image data starts here
-                minimum_code_size = self.dv.read_byte()
-                size = get_sub_block_size(self.bytez, self.dv.offset)
+                minimum_code_size = self.data_reader.read_byte()
+                size = get_sub_block_size(self.bytez, self.data_reader.offset)
                 # print(binascii.hexlify(self.bytez[self.dv.offset-1:self.dv.offset+size]))
     
-                self.dv.advance(size)
+                self.data_reader.advance(size)
     
                 print(f"ImageData size: {size}")
 

@@ -1,10 +1,11 @@
 import struct
-from data import RGBTriplet
+from .data import RGBTriplet
 
 class DataReader:
-    def __init__(self, bytez, offset=0):
-        self.bytez = bytez
-        self.length = len(bytez)
+    def __init__(self, filename, offset=0):
+        with open(filename, "rb") as f:
+            self.bytez = f.read()
+        self.length = len(self.bytez)
         self.offset = offset
     
     def is_done(self):
