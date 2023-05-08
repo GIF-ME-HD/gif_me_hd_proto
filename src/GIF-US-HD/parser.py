@@ -1,7 +1,7 @@
 from .datareader import DataReader
 from .data import GifData, GifFrame, ImageDescriptor, ImageData
-from .extensions import Extension
-from .utils import is_bit_set, reshape_2d, get_sub_block_size
+from .extensions import Extension, GraphicsControlExt
+from .utils import is_bit_set, get_sub_block_size
 
 DEFAULT_HEADER = b"GIF89a"
 GIF_TRAILER = 0x3B
@@ -59,7 +59,7 @@ class GifReader:
             gif_data.gct = self.data_reader.read_triplet_list(
                 GifReader.get_ct_size(gif_data.gct_size))
 
-        # NOTE: start parsing the frames
+        prev_graphic_control = None
         while not self.data_reader.is_done():
             # if end of bytez
             if self.data_reader.peek_byte() == GIF_TRAILER or self.data_reader.offset == len(self.bytez)-1:
@@ -69,11 +69,14 @@ class GifReader:
             # TODO: handles all extension, by saving the bytez associated with the extensions first
             elif Extension.is_extension(self.bytez, self.data_reader.offset):
                 print("EXTENSION")
-                my_ext = Extension.create_extension(
+                extension = Extension.create_extension(
                     self.bytez, self.data_reader.offset)
-                self.data_reader.advance(my_ext.size)
-                gif_data.frames[frame_ctr].extensions.append(my_ext)
-                print(my_ext)
+                self.data_reader.advance(extension.size)
+                # Special case for Graphical Control Extension
+                if isinstance(extension, GraphicsControlExt):
+                    prev_graphic_control = extension
+                    continue
+                gif_data.extensions.append(extension)
 
             # Frame Data
             elif ImageDescriptor.is_image_descriptor(self.bytez, self.data_reader.offset):
@@ -92,6 +95,7 @@ class GifReader:
                 """
                 frame = GifFrame()
                 gif_data.frames.append(frame)
+                frame.graphic_control = prev_graphic_control
 
                 frame.img_descriptor = ImageDescriptor()
                 self.data_reader.advance(1)
@@ -101,7 +105,6 @@ class GifReader:
                 frame.img_descriptor.height = self.data_reader.read_short()
 
                 packed_field = self.data_reader.read_byte()
-
                 frame.img_descriptor.lct_size = packed_field & 0b0000_0111
                 frame.img_descriptor.sort_flag = is_bit_set(packed_field, 5)
                 frame.img_descriptor.interlace_flag = is_bit_set(packed_field, 6)
