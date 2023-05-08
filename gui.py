@@ -71,15 +71,16 @@ class DisplayTab(QWidget):
         windowLayout = QVBoxLayout()
         
         hboxLayout1 = QHBoxLayout()
+        hboxLayout1.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         hboxLayout1.addWidget(self.label)
         
         hboxLayout2 = QHBoxLayout()
-        hboxLayout2.addWidget(self.zoomin_btn)
         hboxLayout2.addWidget(self.zoomout_btn)
+        hboxLayout2.addWidget(self.zoomin_btn)
 
         hboxLayout3 = QHBoxLayout()
-        hboxLayout3.addWidget(self.next_frame_button)
         hboxLayout3.addWidget(self.prev_frame_button)
+        hboxLayout3.addWidget(self.next_frame_button)
 
         windowLayout.addWidget(self.frame_label)
 
@@ -121,8 +122,9 @@ class DisplayTab(QWidget):
         # update canvas with new scale
         self.update_canvas()
 
+
 if __name__ == '__main__':
-    def add_tabs(tabs):
+    def add_tabs(tabs:QTabWidget):
         tabs.clear()
         w.resize(800, 500)
         my_file  = QFileDialog.getOpenFileName(None, "Select GIF file", "", "Images (*.gif)")
