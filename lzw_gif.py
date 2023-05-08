@@ -3,6 +3,12 @@
 CLEAR_CODE = "CC"
 EOI_CODE = "EOI"
 
+class ClearCodeInv:
+    def __init__(self):
+        pass
+class EoiCodeInv:
+    def __init__(self):
+        pass
 def create_code_table(lzw_min_code_size):
     ret = {}
     for i in range(2 ** lzw_min_code_size):
@@ -16,16 +22,16 @@ def create_inverse_code_table(lzw_min_code_size):
     ret = {}
     for i in range(2 ** lzw_min_code_size):
         ret[i] = [i]
-    ret[i+1] = CLEAR_CODE
-    ret[i+2] = EOI_CODE
+    ret[i+1] = ClearCodeInv()
+    ret[i+2] = EoiCodeInv()
     return ret
 
 def decompress(bytestream):
-    return
     index_stream = []
     code_stream = b""
     lzw_min_code_size = bytestream[0]
     code_table = create_inverse_code_table(lzw_min_code_size)
+    next_smallest_code = (2 ** lzw_min_code_size)+2
     cur_idx = 1
     subblock_size = bytestream[cur_idx]
     while subblock_size != 0:
@@ -37,19 +43,44 @@ def decompress(bytestream):
     cur_code_size = lzw_min_code_size+1
 
     code_stream = (int.from_bytes(code_stream, byteorder='little'), len(code_stream) * 8)
-    orig_code_stream = code_stream
-    mask = (1 << code_stream[1])-1
+
+
+    code = get_rightmost_n_bits(code_stream, cur_code_size)
+    code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
+    assert code == 2 ** lzw_min_code_size
 
     code = get_rightmost_n_bits(code_stream, cur_code_size)
     code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
 
-    index_stream.append(code_table[code])
+    index_stream += code_table[code]
 
     prev_code = code
-    while code_stream[1] != 0:
+    while True:
         code = get_rightmost_n_bits(code_stream, cur_code_size)
         code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
+        if code in code_table:
+            if type(code_table[code]) is ClearCodeInv:
+                code_table = create_inverse_code_table(lzw_min_code_size)
+                next_smallest_code = (2 ** lzw_min_code_size)+2
+                continue
+            elif type(code_table[code]) is EoiCodeInv:
+                break
+            else:
+                index_stream += code_table[code]
+                k = code_table[code][0]
+        else:
+            k = code_table[prev_code][0]
+            index_stream += code_table[prev_code] + [k]
+
+        code_table[next_smallest_code] = code_table[prev_code] + [k]
+        if next_smallest_code == 2 ** cur_code_size-1:
+            cur_code_size += 1
+        next_smallest_code += 1
+        prev_code = code
+
+
     print(code_stream)
+    return index_stream
 
 
 def compress(index_stream, lzw_min_code_size):
@@ -128,13 +159,13 @@ def compress(index_stream, lzw_min_code_size):
 
 
 
-
+input_indices = [1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,0,0,0,0,2,2,2,1,1,1,0,0,0,0,2,2,2,2,2,2,0,0,0,0,1,1,1,2,2,2,0,0,0,0,1,1,1,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,1,1]
 compressed_data= b'\x02\x16\x8c-\x99\x87*\x1c\xdc3\xa0\x02u\xec\x95\xfa\xa8\xde`\x8c\x04\x91L\x01\x00'
 decompressed_data = decompress(compressed_data)
-
+assert decompressed_data == input_indices
 # Future use ceil(log(len(color_table), 2))
 lzw_min_code_size = compressed_data[0]
-decompressed_data = [1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,0,0,0,0,2,2,2,1,1,1,0,0,0,0,2,2,2,2,2,2,0,0,0,0,1,1,1,2,2,2,0,0,0,0,1,1,1,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2,1,1,1,1,1]
+decompressed_data = input_indices
 compressed_data = compress(decompressed_data, lzw_min_code_size)
 print(compressed_data)
 
