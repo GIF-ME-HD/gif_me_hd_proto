@@ -16,26 +16,21 @@ import gzip
 from parse import *
 class DisplayTab(QWidget):
 
-    def __init__(self, filename: str):
+    def __init__(self, gif:GifData):
         super().__init__()
-        self.filename = filename
         self.left = 10
         self.top = 10
         self.width = 800
         self.height = 480
+        self.parsed_gif = gif
 
         self.cur_frame = 0
         self.scale = (1, 1)
-        self.parse_image(filename)
         self.initUI()
         self.update_canvas()
-
-    def parse_image(self, filename: str):
-        img = GifReader(filename)
-        self.parsed_img = img.parse()
     
     def advance_frame(self, offset=1):
-        if self.cur_frame+offset < len(self.parsed_img.frames) and\
+        if self.cur_frame+offset < len(self.parsed_gif.frames) and\
             self.cur_frame+offset >= 0:
             self.cur_frame += offset
             self.update_canvas()
@@ -64,7 +59,7 @@ class DisplayTab(QWidget):
         self.zoomout_btn.clicked.connect(lambda _: self.change_scale("decr"))
 
         self.label = QLabel()
-        canvas = QPixmap(self.parsed_img.width, self.parsed_img.height)
+        canvas = QPixmap(self.parsed_gif.width, self.parsed_gif.height)
         canvas.fill(Qt.black)
         
         self.label.setPixmap(canvas)
@@ -93,22 +88,22 @@ class DisplayTab(QWidget):
         
     def update_canvas(self):
         # canvas = self.label.pixmap()
-        canvas = QPixmap(self.parsed_img.width, self.parsed_img.height)
+        canvas = QPixmap(self.parsed_gif.width, self.parsed_gif.height)
         canvas.fill(Qt.black)
         painter = QtGui.QPainter(canvas)
         pen = QtGui.QPen()
         pen.setWidth(1)
-        for y in range(self.parsed_img.height):
-            for x in range(self.parsed_img.width):
-                drawn_frame = self.parsed_img.frames[self.cur_frame]
-                rgb = drawn_frame.frame_img_data.rgb_lst[y * self.parsed_img.width + x]
+        for y in range(self.parsed_gif.height):
+            for x in range(self.parsed_gif.width):
+                drawn_frame = self.parsed_gif.frames[self.cur_frame]
+                rgb = drawn_frame.frame_img_data.rgb_lst[y * self.parsed_gif.width + x]
                 pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
                 # pen.setColor(QtGui.QColor('red'))
                 painter.setPen(pen)
                 painter.drawPoint(x, y)
         painter.end()
-        canvas = canvas.scaled(self.parsed_img.width*self.scale[0], 
-                               self.parsed_img.width*self.scale[1])
+        canvas = canvas.scaled(self.parsed_gif.width*self.scale[0], 
+                               self.parsed_gif.width*self.scale[1])
         self.label.setPixmap(canvas)
 
     def change_scale(self, incr_or_decr, offset = 0.1):
@@ -130,7 +125,9 @@ if __name__ == '__main__':
         my_file  = QFileDialog.getOpenFileName(None, "Select GIF file", "", "Images (*.gif)")
         my_file = my_file[0]
         tabs.resize(800, 1000)
-        tabs.addTab(DisplayTab(my_file), "Display")
+        # Parse image
+        img = GifReader(my_file).parse()
+        tabs.addTab(DisplayTab(img), "Display")
 
 
     app = QApplication(sys.argv)
