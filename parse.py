@@ -250,7 +250,7 @@ class RGBTriplet:
 
 def display_color_table(lst, name=''):
     import numpy as np
-    import cv2
+    # import cv2
     img = np.zeros((len(lst), len(lst), 3), np.uint8)
     for x in range(len(lst)):
         for y in range(len(lst)):
@@ -259,8 +259,8 @@ def display_color_table(lst, name=''):
             g = rgb.g
             b = rgb.b
             img[x,y] = (b,g,r)
-    cv2.imshow(name, img)
-    cv2.waitKey(0)
+    # cv2.imshow(name, img)
+    # cv2.waitKey(0)
 
 
 class ImageDescriptor:
