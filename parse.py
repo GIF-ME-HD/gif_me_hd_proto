@@ -287,6 +287,7 @@ class ImageDescriptor:
 
 class GifReader:
     def __init__(self, filename):
+        self.filename = filename
         with open(filename, "rb") as f:
             self.bytez = f.read()
         self.dv = DataReader(self.bytez, len(DEFAULT_HEADER))
@@ -402,7 +403,7 @@ class GifReader:
 
         # TODO: alternatively parse the GIF image data in parallel to the other stuff
         # NOTE: we still assume that image frames sizes  = canvas size
-        imagedata_bytez_lst = ImageData.gif_lzw_decoding(f"./DancingPeaks.gif", write_raw_bytes=True)
+        imagedata_bytez_lst = ImageData.gif_lzw_decoding(self.filename, write_raw_bytes=False)
         frames_rgbs = ImageData.bytez_2_frames_rgb(imagedata_bytez_lst, gif_data.width, gif_data.height)
         
         imagedatas = []
@@ -432,8 +433,8 @@ class GIF_encoder:
         
     # TODO: the output is a gif file that is built from a GIFData object
     def encode(self, gif_data):
-        # NOTE: use shifting to add bytes to bytes to the 
         # the header part
+        # NOTE: use shifting to add bytes to bytes to the 
         
         
         
