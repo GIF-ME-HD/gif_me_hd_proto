@@ -17,8 +17,8 @@ def decompress(code_stream):
     code_table = create_code_table(lzw_min_code_size)
 
 def compress(index_stream, lzw_min_code_size):
-    code_stream = b""
-    code_stream += lzw_min_code_size.to_bytes(byteorder="big", length=1)
+    ret = b""
+    ret += lzw_min_code_size.to_bytes(byteorder="big", length=1)
     code_table = create_code_table(lzw_min_code_size)
 
     lst_to_str = lambda lst: ",".join([str(_[0]) for _ in lst])
@@ -75,14 +75,24 @@ def compress(index_stream, lzw_min_code_size):
     pad_num = 8 - (bitstream[1] % 8)
     bitstream = (bitstream[0], bitstream[1] + pad_num)
 
-    ret = bitstream[0].to_bytes(byteorder="little", length=bitstream[1] // 8)
+    bytestream = bitstream[0].to_bytes(byteorder="little", length=bitstream[1] // 8)
+
+    while len(bytestream) > 0xFF:
+        ret += (0xFF).to_bytes(1, byteorder="little")
+        ret += bytestream[:0xFF]
+        bytestream = bytestream[0xFF:]
+    ret += (len(bytestream)).to_bytes(1, byteorder="little")
+    ret += bytestream[:len(bytestream)]
+    ret += b"\x00"
+    bytestream = bytestream[len(bytestream):]
+
     return ret
 
 
 
 
 
-compressed_data= [0x02, 0x16, 0x8C, 0x2D, 0x99, 0x87, 0x2A, 0x1C, 0xDC, 0x33, 0xA0, 0x02, 0x75, 0xEC, 0x95, 0xFA, 0xA8, 0xDE, 0x60, 0x8C, 0x04, 0x91, 0x4C, 0x01, 0x00]
+compressed_data= b'\x02\x16\x8c-\x99\x87*\x1c\xdc3\xa0\x02u\xec\x95\xfa\xa8\xde`\x8c\x04\x91L\x01\x00'
 decompressed_data = decompress(compressed_data)
 
 # Future use ceil(log(len(color_table), 2))
