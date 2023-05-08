@@ -12,9 +12,45 @@ def create_code_table(lzw_min_code_size):
     ret[EOI_CODE] = i+2
     return ret
 
-def decompress(code_stream):
-    lzw_min_code_size = code_stream[0]
-    code_table = create_code_table(lzw_min_code_size)
+def create_inverse_code_table(lzw_min_code_size):
+    ret = {}
+    for i in range(2 ** lzw_min_code_size):
+        ret[i] = [i]
+    ret[i+1] = CLEAR_CODE
+    ret[i+2] = EOI_CODE
+    return ret
+
+def decompress(bytestream):
+    return
+    index_stream = []
+    code_stream = b""
+    lzw_min_code_size = bytestream[0]
+    code_table = create_inverse_code_table(lzw_min_code_size)
+    cur_idx = 1
+    subblock_size = bytestream[cur_idx]
+    while subblock_size != 0:
+        code_stream += bytestream[cur_idx+1:cur_idx+1+subblock_size]
+        cur_idx = cur_idx+1+subblock_size
+        subblock_size = bytestream[cur_idx]
+
+    get_rightmost_n_bits = lambda x, n: x[0] & (1 << n)-1
+    cur_code_size = lzw_min_code_size+1
+
+    code_stream = (int.from_bytes(code_stream, byteorder='little'), len(code_stream) * 8)
+    orig_code_stream = code_stream
+    mask = (1 << code_stream[1])-1
+
+    code = get_rightmost_n_bits(code_stream, cur_code_size)
+    code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
+
+    index_stream.append(code_table[code])
+
+    prev_code = code
+    while code_stream[1] != 0:
+        code = get_rightmost_n_bits(code_stream, cur_code_size)
+        code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
+    print(code_stream)
+
 
 def compress(index_stream, lzw_min_code_size):
     ret = b""
@@ -81,8 +117,9 @@ def compress(index_stream, lzw_min_code_size):
         ret += (0xFF).to_bytes(1, byteorder="little")
         ret += bytestream[:0xFF]
         bytestream = bytestream[0xFF:]
-    ret += (len(bytestream)).to_bytes(1, byteorder="little")
-    ret += bytestream[:len(bytestream)]
+    if len(bytestream) != 0:
+        ret += (len(bytestream)).to_bytes(1, byteorder="little")
+        ret += bytestream[:len(bytestream)]
     ret += b"\x00"
     bytestream = bytestream[len(bytestream):]
 
