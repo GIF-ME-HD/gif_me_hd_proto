@@ -16,7 +16,6 @@ class GifFrame:
 
 class GifData:
     def __init__(self):
-        # TODO: Add the others
         self.width = None
         self.height = None
 
@@ -64,8 +63,8 @@ class ImageData:
 
 class ImageDescriptor:
     def __init__(self):
-        self.img_left = None
-        self.img_top = None
+        self.left = None
+        self.top = None
         self.width = None
         self.height = None
         

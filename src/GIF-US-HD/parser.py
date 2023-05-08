@@ -4,6 +4,7 @@ from .extensions import Extension
 from .utils import is_bit_set, reshape_2d, get_sub_block_size
 
 DEFAULT_HEADER = b"GIF89a"
+GIF_TRAILER = 0x3B
 
 
 class GifReader:
@@ -19,9 +20,8 @@ class GifReader:
                             self.data_reader.bytez[:len(DEFAULT_HEADER)].decode())
 
     @staticmethod
-    def get_real_gct_size(n):
+    def get_ct_size(n):
         return 2 ** (n+1)
-
 
     def parse(self) -> GifData:
         """
@@ -31,6 +31,8 @@ class GifReader:
         """
         <-- HEADER -->
         Signature (3) | Version (3) |
+
+        <-- LOGICAL SCREEN DESCRIPTOR -->
         Logical Screen Width (2u) | Logical Screen Height (2u) |
         Packed Field* (1) | BG Color Index (1) | Pixel Aspect Ratio (1) |
 
@@ -55,10 +57,9 @@ class GifReader:
         gif_data.pixel_aspect_ratio = self.data_reader.read_byte()
 
         if gif_data.gct_flag:
-            num_bytes = GifReader.get_real_gct_size(gif_data.gct_size)
-            gif_data.gct = self.data_reader.read_triplet_list(num_bytes)
+            gif_data.gct = self.data_reader.read_triplet_list(
+                GifReader.get_ct_size(gif_data.gct_size))
 
-        GIF_TRAILER = 0x3B
         frame_ctr = 0
         image_descriptors = []
         # NOTE: start parsing the frames
@@ -76,7 +77,6 @@ class GifReader:
                 self.data_reader.advance(my_ext.size)
                 gif_data.frames[frame_ctr].extensions.append(my_ext)
                 print(my_ext)
-                # print(f"After extension: {self.bytez[self.dv.offset:]}")
 
             elif ImageDescriptor.is_image_descriptor(self.bytez, self.data_reader.offset):
                 img_descriptor = ImageDescriptor()
@@ -95,25 +95,13 @@ class GifReader:
                 img_descriptor.lct_flag = is_bit_set(packed, 7)
 
                 if img_descriptor.lct_flag:
-                    num_bytes = GifReader.get_real_gct_size(
-                        gif_data.img_descriptor.lct_size)
-                    lct = self.data_reader.read_triplet_list(num_bytes)
-                    img_descriptor.lct = lct
-
-                    from math import sqrt
-                    print("Palette:")
-                    reshaped_palette = reshape_2d(
-                        img_descriptor.lct, int(sqrt(num_bytes)))
-                    print(reshaped_palette)
-                    display_color_table(
-                        reshaped_palette, "LCT " + str(frame_ctr))
+                    img_descriptor.lct = self.data_reader.read_triplet_list(
+                        GifReader.get_ct_size(gif_data.img_descriptor.lct_size))
 
                 gif_data.img_descriptor = img_descriptor
                 # NOTE: add to list of image descriptors
                 image_descriptors.append(img_descriptor)
 
-            # It is ImageData
-            else:
                 frame_ctr += 1
                 gif_data.frames.append(GifFrame())
                 # Ignore first byte
