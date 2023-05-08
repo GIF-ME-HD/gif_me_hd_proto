@@ -60,8 +60,6 @@ class GifReader:
             gif_data.gct = self.data_reader.read_triplet_list(
                 GifReader.get_ct_size(gif_data.gct_size))
 
-        frame_ctr = 0
-        image_descriptors = []
         # NOTE: start parsing the frames
         while not self.data_reader.is_done():
             # if end of bytez
@@ -78,64 +76,50 @@ class GifReader:
                 gif_data.frames[frame_ctr].extensions.append(my_ext)
                 print(my_ext)
 
+            # Frame Data
             elif ImageDescriptor.is_image_descriptor(self.bytez, self.data_reader.offset):
-                img_descriptor = ImageDescriptor()
-                print("IMAGE DESCRIPTOR")
+                """
+                <-- IMAGE DESCRIPTOR -->
+                ImageSeparator(1) | Left Pos (2u) | Top Pos (2u) | Width (2u) |
+                Height (2u) | Packed Fields* (1)
+
+                * Packed Fields : {
+                    LCT flag (1bit)
+                    Interlace flag (1bit)
+                    Sort flag (1bit)
+                    Reserved (2bits)
+                    Size of LCT (3bits)
+                }
+                """
+                frame = GifFrame()
+                gif_data.frames.append(frame)
+
+                frame.img_descriptor = ImageDescriptor()
                 self.data_reader.advance(1)
-                img_descriptor.left = self.data_reader.read_short()
-                img_descriptor.top = self.data_reader.read_short()
-                img_descriptor.width = self.data_reader.read_short()
-                img_descriptor.height = self.data_reader.read_short()
+                frame.img_descriptor.left = self.data_reader.read_short()
+                frame.img_descriptor.top = self.data_reader.read_short()
+                frame.img_descriptor.width = self.data_reader.read_short()
+                frame.img_descriptor.height = self.data_reader.read_short()
 
-                packed = self.data_reader.read_byte()
+                packed_field = self.data_reader.read_byte()
 
-                img_descriptor.lct_size = packed & 0b0000_0111
-                img_descriptor.sort_flag = is_bit_set(packed, 5)
-                img_descriptor.interlace_flag = is_bit_set(packed, 6)
-                img_descriptor.lct_flag = is_bit_set(packed, 7)
+                frame.img_descriptor.lct_size = packed_field & 0b0000_0111
+                frame.img_descriptor.sort_flag = is_bit_set(packed_field, 5)
+                frame.img_descriptor.interlace_flag = is_bit_set(packed_field, 6)
+                frame.img_descriptor.lct_flag = is_bit_set(packed_field, 7)
 
-                if img_descriptor.lct_flag:
-                    img_descriptor.lct = self.data_reader.read_triplet_list(
-                        GifReader.get_ct_size(gif_data.img_descriptor.lct_size))
+                if frame.img_descriptor.lct_flag:
+                    frame.img_descriptor.lct = self.data_reader.read_triplet_list(
+                        GifReader.get_ct_size(frame.img_descriptor.lct_size))
 
-                gif_data.img_descriptor = img_descriptor
-                # NOTE: add to list of image descriptors
-                image_descriptors.append(img_descriptor)
-
-                frame_ctr += 1
-                gif_data.frames.append(GifFrame())
-                # Ignore first byte
-                print("IMAGE DATA")
-                # import binascii
-                # print(binascii.hexlify(self.bytez[self.dv.offset:]))
-
-                # TODO: do something with the size, the parsing for the lzw-encoded image data starts here
-                minimum_code_size = self.data_reader.read_byte()
                 size = get_sub_block_size(self.bytez, self.data_reader.offset)
-                # print(binascii.hexlify(self.bytez[self.dv.offset-1:self.dv.offset+size]))
-
+                # TODO : Parsing of Image Data with LZW Decompression
                 self.data_reader.advance(size)
 
                 print(f"ImageData size: {size}")
-
-        # TODO: alternatively parse the GIF image data in parallel to the other stuff
-        # NOTE: we still assume that image frames sizes  = canvas size
-        imagedata_bytez_lst = ImageData.gif_lzw_decoding(
-            f"./dataset/DancingPeaks.gif", write_raw_bytes=True)
-        frames_rgbs = ImageData.bytez_2_frames_rgb(
-            imagedata_bytez_lst, gif_data.width, gif_data.height)
-
-        imagedatas = []
-        for i in range(frame_ctr):
-            imagedata = ImageData(imagedata_bytez_lst[i])
-            imagedata.rgb_lst = frames_rgbs[i]
-            imagedatas.append(imagedata)
-
-        # TODO: add ImageData and ImgDescriptor to GifFrames
-        for i in range(frame_ctr):
-            gif_data.frames[i].img_descriptor = image_descriptors[i]
-            gif_data.frames[i].frame_img_data = imagedatas[i]
-
+            
+            else:
+                raise Exception(f"Unrecognised Block at {self.data_reader.offset}")
         return gif_data
 
 
