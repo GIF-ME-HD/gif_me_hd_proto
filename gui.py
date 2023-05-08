@@ -88,19 +88,21 @@ class DisplayTab(QWidget):
         
     def update_canvas(self):
         # canvas = self.label.pixmap()
-        canvas = QPixmap(self.parsed_gif.width, self.parsed_gif.height)
-        canvas.fill(Qt.black)
+        canvas = QPixmap(self.parsed_img.width, self.parsed_img.height)
+        canvas.fill(Qt.cyan)
         painter = QtGui.QPainter(canvas)
         pen = QtGui.QPen()
         pen.setWidth(1)
-        for y in range(self.parsed_gif.height):
-            for x in range(self.parsed_gif.width):
-                drawn_frame = self.parsed_gif.frames[self.cur_frame]
-                rgb = drawn_frame.frame_img_data.rgb_lst[y * self.parsed_gif.width + x]
+        drawn_frame = self.parsed_img.frames[self.cur_frame]
+        for y in range(drawn_frame.img_descriptor.height):
+            for x in range(drawn_frame.img_descriptor.width):
+                rgb = drawn_frame.frame_img_data.rgb_lst[y * drawn_frame.img_descriptor.width + x]
+                global_x = x + drawn_frame.img_descriptor.left
+                global_y = y + drawn_frame.img_descriptor.top
                 pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
                 # pen.setColor(QtGui.QColor('red'))
                 painter.setPen(pen)
-                painter.drawPoint(x, y)
+                painter.drawPoint(global_x, global_y)
         painter.end()
         canvas = canvas.scaled(self.parsed_gif.width*self.scale[0], 
                                self.parsed_gif.width*self.scale[1])

@@ -165,59 +165,17 @@ class GifData:
 
 # TODO: rework the ImageData class for each frame instead of handling for the whole GifData class
 class ImageData:
-    def __init__(self, bytez):
+    def __init__(self, indices, color_table):
         # TODO: now we still assume that each image frame matches the canva size of the GIF
-        self.bytez = bytez     
-        self.rgb_lst = None
+        self.indices = indices
+        self.color_table = color_table
+        self.rgb_lst = [color_table[_] for _ in indices]
     
     def __repr__(self):
         string = f"ImageData[{self.width}x{self.height})]\n"
         for i in range(len(self.frames_rgb)):
             string += f"frame{i}:[{self.frames_rgb[i]}]\n" 
         return string
-    
-    # TODO: returns list of raw bytes as 2D list of imagedata
-    def bytez_2_frames_rgb(bytez_lst, width, height):
-        frames_rgb = []
-        # calculate the size of the image in bytes
-        image_size = width * height * 3
-        # loop through each frames' raw bytes
-        for i in range(len(bytez_lst)):
-            bytez = bytez_lst[i]
-            # unpack the raw bytes into RGB triplets
-            frame_rgb_data = []
-            for j in range(0, image_size, 3):
-                r, g, b = struct.unpack("BBB", bytez[j:j+3])
-                frame_rgb_data.append(RGBTriplet(r, g, b))
-            # append rgb triplets in this frame to 
-            frames_rgb.append(frame_rgb_data)
-        return frames_rgb
-    
-    def gif_lzw_decoding(filename, write_raw_bytes=False):
-        reader = iio.imread(filename, extension=".gif")
-        
-        raw_bytes_lst = []
-        for i, frame in enumerate(reader):
-            # Get the image data for the current frame
-            image_data = frame.tobytes()
-            # frame.properties
-            props = iio.improps(filename, index=i)
-            meta = iio.immeta(filename, index=i)
-            
-            # length = len(bytearray(image_data))
-            raw_bytes_lst.append(image_data)
-            
-            if write_raw_bytes:
-                try:
-                    open(f'framedata/{filename}/frame{str(i)}.txt', 'wb')
-                except FileNotFoundError:
-                    os.makedirs(f'framedata/{filename}')
-                with open(f'framedata/{filename}/frame{str(i)}.txt', 'wb') as f:
-                    f.write(image_data)
-                
-        # similarity = test_similar(lst)
-
-        return raw_bytes_lst
                         
         
 def get_sub_block_size(bytez, offset):
@@ -304,7 +262,8 @@ class GifReader:
         return 2 ** (n+1)
     
     def parse(self):
-        
+
+        imagedatas = []
         gif_data = GifData()
         gif_data.width = self.dv.read_short()	
         gif_data.height= self.dv.read_short()	
@@ -330,7 +289,7 @@ class GifReader:
         print(f"Num Bytes: {num_bytes}")
         reshaped_palette = reshape_2d(gif_data.gct, int(sqrt(num_bytes)))
         print(reshaped_palette)
-        display_color_table(reshaped_palette, "GCT")
+        # display_color_table(reshaped_palette, "GCT")
 
         GIF_TRAILER = 0x3B
         frame_ctr = 0
@@ -394,23 +353,18 @@ class GifReader:
                 #TODO: do something with the size, the parsing for the lzw-encoded image data starts here
                 minimum_code_size = self.dv.read_byte()
                 size = get_sub_block_size(self.bytez, self.dv.offset)
-                # print(binascii.hexlify(self.bytez[self.dv.offset-1:self.dv.offset+size]))
+
+                from lzw_gif import decompress
+                indices = decompress(minimum_code_size.to_bytes(1, byteorder="big") + self.bytez[self.dv.offset:self.dv.offset+size])
+
+
+                imagedata = ImageData(indices, gif_data.gct)
+                imagedatas.append(imagedata)
     
                 self.dv.advance(size)
     
                 print(f"ImageData size: {size}")
 
-
-        # TODO: alternatively parse the GIF image data in parallel to the other stuff
-        # NOTE: we still assume that image frames sizes  = canvas size
-        imagedata_bytez_lst = ImageData.gif_lzw_decoding(self.filename, write_raw_bytes=False)
-        frames_rgbs = ImageData.bytez_2_frames_rgb(imagedata_bytez_lst, gif_data.width, gif_data.height)
-        
-        imagedatas = []
-        for i in range(frame_ctr):
-            imagedata = ImageData(imagedata_bytez_lst[i])
-            imagedata.rgb_lst = frames_rgbs[i]
-            imagedatas.append(imagedata)
         
         # TODO: add ImageData and ImgDescriptor to GifFrames
         for i in range(frame_ctr):
@@ -573,7 +527,7 @@ def lzw_compression(rgb_triplet_image_data, color_table, code_size=2, string_for
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:
-        filename = "DancingPeaks.gif"
+        filename = "dataset/sample_2_animation.gif"
     else:
         filename = sys.argv[1]
     reader = GifReader(filename)
