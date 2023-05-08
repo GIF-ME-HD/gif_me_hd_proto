@@ -27,8 +27,10 @@ def compress(index_stream, lzw_min_code_size):
     def gen_code_stream(index_stream, lzw_min_code_size, code_table):
         code_stream = []
         first_code_size = lzw_min_code_size+1
+        cur_code_size = first_code_size
+
         # Send Clear Code
-        code_stream.append(2 ** lzw_min_code_size)
+        code_stream.append((code_table[CLEAR_CODE], cur_code_size))
 
         first_val = index_stream[0]
         index_buffer = [first_val]
@@ -42,12 +44,14 @@ def compress(index_stream, lzw_min_code_size):
                 index_buffer = index_buffer + k
             else:
                 code_table[lst_to_str(index_buffer + k)] = next_smallest_code
+                code_stream.append((code_table[lst_to_str(index_buffer)], cur_code_size))
+                if next_smallest_code == 2 ** cur_code_size:
+                    cur_code_size += 1
                 next_smallest_code += 1
-                code_stream.append(code_table[lst_to_str(index_buffer)])
                 index_buffer = k
         code_stream += index_buffer
         # Send EOI
-        code_stream.append((2 ** lzw_min_code_size) + 1)
+        code_stream.append((code_table[EOI_CODE], cur_code_size))
         return code_stream
     print(gen_code_stream(index_stream, lzw_min_code_size, code_table))
 
