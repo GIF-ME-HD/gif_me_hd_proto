@@ -1,16 +1,8 @@
 from __future__ import annotations
-import struct
 
-"""
-TODO: make changes to GifFrame such that it has:
-1. image descriptor frame
-2. LCT for a frame
-3. image data for a frame
-4. extensions (plaintext / comment / application)
-"""
 class GifFrame:
     def __init__(self):
-        self.extensions = []
+        self.graphic_control = None
         self.img_descriptor = None
         self.frame_img_data = None # NOTE: in the form of a 1D list of Indices to CT
 
@@ -28,8 +20,8 @@ class GifData:
         self.bg_color_index = 0
         self.pixel_aspect_ratio = 0
 
+        self.extensions = []
         self.frames:list[GifFrame] = []
-
 
 class ImageDescriptor:
     IMAGE_SEPARATOR = 0x2C
