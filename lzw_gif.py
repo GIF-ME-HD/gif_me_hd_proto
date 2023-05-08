@@ -55,13 +55,24 @@ def decompress(bytestream):
     index_stream += code_table[code]
 
     prev_code = code
+    codes = [code]
     while True:
         code = get_rightmost_n_bits(code_stream, cur_code_size)
         code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
+        codes.append(code)
         if code in code_table:
             if type(code_table[code]) is ClearCodeInv:
                 code_table = create_inverse_code_table(lzw_min_code_size)
                 next_smallest_code = (2 ** lzw_min_code_size)+2
+                cur_code_size = lzw_min_code_size
+
+                code = get_rightmost_n_bits(code_stream, cur_code_size)
+                code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
+                assert code == 0 # Should always have an EOI code directly after ClearCodeInv
+
+                cur_code_size = lzw_min_code_size+1
+                prev_code = code
+
                 continue
             elif type(code_table[code]) is EoiCodeInv:
                 break
