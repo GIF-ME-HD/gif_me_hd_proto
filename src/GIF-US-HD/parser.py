@@ -27,10 +27,10 @@ class GifReader:
         """
         Parses the GIF file based loaded.
         """
-
+        gif_data = GifData()
         """
-        <-- HEADER -->
-        Signature (3) | Version (3) |
+        <-- HEADER --> (Handled after reading in bytes)
+        Signature (3) | Version (3)
 
         <-- LOGICAL SCREEN DESCRIPTOR -->
         Logical Screen Width (2u) | Logical Screen Height (2u) |
@@ -43,7 +43,6 @@ class GifReader:
             Size of GCT (3bit)
         }
         """
-        gif_data = GifData()
         gif_data.width = self.data_reader.read_short()
         gif_data.height = self.data_reader.read_short()
 
@@ -121,18 +120,3 @@ class GifReader:
             else:
                 raise Exception(f"Unrecognised Block at {self.data_reader.offset}")
         return gif_data
-
-
-def display_color_table(lst, name=''):
-    import numpy as np
-    import cv2
-    img = np.zeros((len(lst), len(lst), 3), np.uint8)
-    for x in range(len(lst)):
-        for y in range(len(lst)):
-            rgb = lst[x][y]
-            r = rgb.r
-            g = rgb.g
-            b = rgb.b
-            img[x, y] = (b, g, r)
-    cv2.imshow(name, img)
-    cv2.waitKey(0)
