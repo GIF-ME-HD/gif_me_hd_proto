@@ -286,9 +286,9 @@ class Frame:
     
     
 if __name__ == "__main__":
-    GIF_FILENAME = "local_color.gif"
-    # gif_lzw_decoding(GIF_FILENAME)
-    visualize_frame(f"./framedata/{GIF_FILENAME}", f'frame0.txt', GIF_FILENAME)
+    GIF_FILENAME = "sample_1.gif"
+    gif_lzw_decoding(GIF_FILENAME)
+    # visualize_frame(f"./framedata/{GIF_FILENAME}", f'frame0.txt', GIF_FILENAME)
     # filenames = get_filenames(f"./framedata/{GIF_FILENAME}/")
     # for filename in filenames:
     #     visualize_frame(f"./framedata/{GIF_FILENAME}", filename, GIF_FILENAME, output_format="file")

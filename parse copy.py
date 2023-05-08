@@ -342,6 +342,10 @@ def is_bit_set(data, bit_num):
 	return bool(((1 << bit_num) & data))
 
 
+
+
+
+
 # TODO: building the lzw code table for image data compression/decompression
 def build_lzw_table(color_table, data, string_form = True):
 	"""
