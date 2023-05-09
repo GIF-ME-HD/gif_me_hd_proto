@@ -4,8 +4,8 @@ import PySide6
 from PySide6 import QtGui
 
 from PySide6.QtWidgets import QTreeView, QApplication, QHeaderView, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QTabWidget, QFileDialog, QLabel
-from PySide6.QtGui import QPixmap
-from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap, QBrush, QPen
+from PySide6.QtCore import Qt, Signal, QObject
 
 
 from qt_material import apply_stylesheet
@@ -14,9 +14,15 @@ import json
 import gzip
 
 from parse import *
-class DisplayTab(QWidget):
 
-    def __init__(self, gif:GifData):
+class FrameRef(QObject):
+    changed_signal = Signal()
+    def __init__(self, current = 0):
+        super().__init__()
+        self.cur_frame = current
+
+class DisplayTab(QWidget):
+    def __init__(self, gif:GifData, frame_ref:FrameRef):
         super().__init__()
         self.left = 10
         self.top = 10
@@ -24,17 +30,16 @@ class DisplayTab(QWidget):
         self.height = 480
         self.parsed_gif = gif
 
-        self.cur_frame = 0
+        self.cur_frame = frame_ref
         self.scale = (1, 1)
         self.initUI()
         self.update_canvas()
     
     def advance_frame(self, offset=1):
-        if self.cur_frame+offset < len(self.parsed_gif.frames) and\
-            self.cur_frame+offset >= 0:
-            self.cur_frame += offset
-            self.update_canvas()
-            self.frame_label.setText(f"Cur Frame: {self.cur_frame}")
+        if self.cur_frame.cur_frame+offset < len(self.parsed_gif.frames) and\
+            self.cur_frame.cur_frame+offset >= 0:
+            self.cur_frame.cur_frame += offset
+            self.frame_label.setText(f"Cur Frame: {self.cur_frame.cur_frame}")
     
     def initUI(self):
         self.setGeometry(self.left, self.top, self.width, self.height)
@@ -44,10 +49,12 @@ class DisplayTab(QWidget):
         self.next_frame_button = QPushButton()
         self.next_frame_button.setText("Next Frame")
         self.next_frame_button.clicked.connect(lambda _: self.advance_frame())
+        self.next_frame_button.clicked.connect(self.cur_frame.changed_signal)
         
         self.prev_frame_button = QPushButton()
         self.prev_frame_button.setText("Prev Frame")
         self.prev_frame_button.clicked.connect(lambda _: self.advance_frame(-1))
+        self.prev_frame_button.clicked.connect(self.cur_frame.changed_signal)
         
         # change the scale of the image
         self.zoomin_btn = QPushButton()
@@ -87,13 +94,12 @@ class DisplayTab(QWidget):
         self.show()
         
     def update_canvas(self):
-        # canvas = self.label.pixmap()
-        canvas = QPixmap(self.parsed_img.width, self.parsed_img.height)
+        canvas = QPixmap(self.parsed_gif.width, self.parsed_gif.height)
         canvas.fill(Qt.cyan)
         painter = QtGui.QPainter(canvas)
-        pen = QtGui.QPen()
+        pen = QPen()
         pen.setWidth(1)
-        drawn_frame = self.parsed_img.frames[self.cur_frame]
+        drawn_frame = self.parsed_gif.frames[self.cur_frame.cur_frame]
         for y in range(drawn_frame.img_descriptor.height):
             for x in range(drawn_frame.img_descriptor.width):
                 rgb = drawn_frame.frame_img_data.rgb_lst[y * drawn_frame.img_descriptor.width + x]
@@ -119,6 +125,29 @@ class DisplayTab(QWidget):
         # update canvas with new scale
         self.update_canvas()
 
+class DetailsTab(QWidget):
+    def __init__(self, gif:GifData, frame_ref:FrameRef):
+        super().__init__()
+        self.parsed_gif = gif
+        self.cur_frame = frame_ref
+        self.initUI()
+        self.updateCanvas()
+
+    def initUI(self):
+        self.frame_label = QLabel("Cur Frame: 0")
+        img_desc = self.parsed_gif.frames[0].img_descriptor
+        self.frame_dim_label = QLabel(f"(Width:Height) : {img_desc.width, img_desc.height}")
+        # TODO : Update this to use the one in GCExt
+        self.frame_delay = QLabel("0")
+        self.gct = self.parsed_gif.gct
+
+    def updateCanvas(self):
+        pass
+
+
+    
+
+
 
 if __name__ == '__main__':
     def add_tabs(tabs:QTabWidget):
@@ -128,8 +157,13 @@ if __name__ == '__main__':
         my_file = my_file[0]
         tabs.resize(800, 1000)
         # Parse image
+        frame_ref = FrameRef()
         img = GifReader(my_file).parse()
-        tabs.addTab(DisplayTab(img), "Display")
+        display = DisplayTab(img, frame_ref)
+        details = DetailsTab(img, frame_ref)
+        tabs.addTab(display, "Display")
+        tabs.addTab(details, "Details")
+        frame_ref.changed_signal.connect(display.update_canvas)
 
 
     app = QApplication(sys.argv)
