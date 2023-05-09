@@ -17,6 +17,9 @@ class Extension:
             raise Exception("Not a valid GIF Extension!")
         self.size = len(bytez)
 
+    def to_bytes(self):
+        return self.bytez
+
     def validate_identifier(self, identifier, name):
         IDENTIFIER_INDEX = 1
         if self.bytez[IDENTIFIER_INDEX] != identifier:
