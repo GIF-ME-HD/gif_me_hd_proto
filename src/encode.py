@@ -3,9 +3,9 @@ from lzw_gif import compress
 import math
 
 DEFAULT_HEADER = b"GIF89a"
-GIF_TRAILER = 0x3B
+GIF_TRAILER = b'\x3B'
 
-class GIF_encoder:
+class GifEncoder:
     def __init__(self, filename):
         self.filename = filename
         self.bytes = None
@@ -47,6 +47,7 @@ class GIF_encoder:
             self.bytez += ext.to_bytes()
 
         for gifframe in gif_data.frames:
+            self.bytez += gifframe.graphic_control.to_bytes()
             self.bytez += gifframe.img_descriptor.to_bytez()
             self.bytez += compress(gifframe.frame_img_data, math.ceil(math.log( 2 ** (gif_data.gct_size+1),2)))
 
