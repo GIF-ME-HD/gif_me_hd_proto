@@ -7,13 +7,13 @@ from PySide6.QtWidgets import QTreeView, QApplication, QHeaderView, QWidget, QVB
 from PySide6.QtGui import QPixmap, QBrush, QPen
 from PySide6.QtCore import Qt, Signal, QObject
 
-
 from qt_material import apply_stylesheet
 
 import json
 import gzip
 
-from parse import *
+from data import GifData
+from parse import GifReader
 
 class FrameRef(QObject):
     changed_signal = Signal()
@@ -100,9 +100,14 @@ class DisplayTab(QWidget):
         pen = QPen()
         pen.setWidth(1)
         drawn_frame = self.parsed_gif.frames[self.cur_frame.cur_frame]
+        gct = self.parsed_gif.gct
         for y in range(drawn_frame.img_descriptor.height):
             for x in range(drawn_frame.img_descriptor.width):
-                rgb = drawn_frame.frame_img_data.rgb_lst[y * drawn_frame.img_descriptor.width + x]
+                bound_ct = gct
+                if drawn_frame.img_descriptor.lct_flag:
+                    bound_ct = drawn_frame.img_descriptor.lct
+                index = drawn_frame.frame_img_data[y * drawn_frame.img_descriptor.width + x]
+                rgb = bound_ct[index]
                 global_x = x + drawn_frame.img_descriptor.left
                 global_y = y + drawn_frame.img_descriptor.top
                 pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))

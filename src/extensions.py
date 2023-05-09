@@ -1,4 +1,4 @@
-from .utils import get_sub_block_size, is_bit_set
+from utils import get_sub_block_size, is_bit_set
 
 EXTENSION_FACTORY_METHOD = {
         0xF9: lambda bytez: GraphicsControlExt(bytez),

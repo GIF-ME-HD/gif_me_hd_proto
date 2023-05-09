@@ -1,7 +1,8 @@
-from .datareader import DataReader
-from .data import GifData, GifFrame, ImageDescriptor, ImageData
-from .extensions import Extension, GraphicsControlExt
-from .utils import is_bit_set, get_sub_block_size
+from datareader import DataReader
+from data import GifData, GifFrame, ImageDescriptor
+from extensions import Extension, GraphicsControlExt
+from utils import is_bit_set, get_sub_block_size
+from lzw_gif import decompress
 
 DEFAULT_HEADER = b"GIF89a"
 GIF_TRAILER = 0x3B
@@ -62,15 +63,15 @@ class GifReader:
         prev_graphic_control = None
         while not self.data_reader.is_done():
             # if end of bytez
-            if self.data_reader.peek_byte() == GIF_TRAILER or self.data_reader.offset == len(self.bytez)-1:
+            if self.data_reader.peek_byte() == GIF_TRAILER or self.data_reader.offset == len(self.data_reader.bytez)-1:
                 print("DONE")
                 self.data_reader.advance(1)
 
             # TODO: handles all extension, by saving the bytez associated with the extensions first
-            elif Extension.is_extension(self.bytez, self.data_reader.offset):
+            elif Extension.is_extension(self.data_reader.bytez, self.data_reader.offset):
                 print("EXTENSION")
                 extension = Extension.create_extension(
-                    self.bytez, self.data_reader.offset)
+                    self.data_reader.bytez, self.data_reader.offset)
                 self.data_reader.advance(extension.size)
                 # Special case for Graphical Control Extension
                 if isinstance(extension, GraphicsControlExt):
@@ -79,7 +80,7 @@ class GifReader:
                 gif_data.extensions.append(extension)
 
             # Frame Data
-            elif ImageDescriptor.is_image_descriptor(self.bytez, self.data_reader.offset):
+            elif ImageDescriptor.is_image_descriptor(self.data_reader.bytez, self.data_reader.offset):
                 """
                 <-- IMAGE DESCRIPTOR -->
                 ImageSeparator(1) | Left Pos (2u) | Top Pos (2u) | Width (2u) |
@@ -114,11 +115,11 @@ class GifReader:
                     frame.img_descriptor.lct = self.data_reader.read_triplet_list(
                         GifReader.get_ct_size(frame.img_descriptor.lct_size))
 
-                size = get_sub_block_size(self.bytez, self.data_reader.offset)
+                minimum_code_size = self.data_reader.read_byte()
+                size = get_sub_block_size(self.data_reader.bytez, self.data_reader.offset)
                 # TODO : Parsing of Image Data with LZW Decompression
+                frame.frame_img_data = decompress(minimum_code_size.to_bytes(1, byteorder="big") + self.data_reader.bytez[self.data_reader.offset:self.data_reader.offset+size])
                 self.data_reader.advance(size)
-
-                print(f"ImageData size: {size}")
             
             else:
                 raise Exception(f"Unrecognised Block at {self.data_reader.offset}")

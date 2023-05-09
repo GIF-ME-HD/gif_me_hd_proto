@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from extensions import GraphicsControlExt
+
 class GifFrame:
     def __init__(self):
-        self.graphic_control = None
-        self.img_descriptor = None
-        self.frame_img_data = None # NOTE: in the form of a 1D list of Indices to CT
+        self.graphic_control:GraphicsControlExt = None
+        self.img_descriptor:ImageDescriptor = None
+        self.frame_img_data:list[int] = None # NOTE: in the form of a 1D list of Indices to CT
 
 class GifData:
     def __init__(self):
