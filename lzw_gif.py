@@ -55,11 +55,11 @@ def decompress(bytestream):
     index_stream += code_table[code]
 
     prev_code = code
-    codes = [code]
+    codes = [(code, cur_code_size)]
     while True:
         code = get_rightmost_n_bits(code_stream, cur_code_size) # get the current code from byte stream
         code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size) # exhaust the current code from byte stream
-        codes.append(code)
+        codes.append((code, cur_code_size))
         if code in code_table:
             # encountered clear code 
             if type(code_table[code]) is ClearCodeInv:
@@ -69,6 +69,7 @@ def decompress(bytestream):
 
                 code = get_rightmost_n_bits(code_stream, cur_code_size)
                 code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
+                codes.append((code, cur_code_size))
 
                 index_stream += code_table[code]
                 prev_code = code
@@ -89,7 +90,6 @@ def decompress(bytestream):
             cur_code_size += 1
         next_smallest_code += 1
         prev_code = code    # update prev code
-
 
     print(code_stream)
     return index_stream
@@ -128,6 +128,7 @@ def compress(index_stream, lzw_min_code_size):
                     # Reset
                     code_table = create_code_table(lzw_min_code_size)
                     code_stream.append((code_table[CLEAR_CODE], cur_code_size))
+                    cur_code_size = first_code_size
                     index_buffer = k
                     next_smallest_code = (2 ** lzw_min_code_size)+2
                     continue
@@ -139,6 +140,10 @@ def compress(index_stream, lzw_min_code_size):
         code_stream.append((code_table[lst_to_str(index_buffer)], cur_code_size))
         # Send EOI
         code_stream.append((code_table[EOI_CODE], cur_code_size))
+
+        with open("compress_dancing_codestream_tuples.txt", "w") as f:
+            for code in code_stream:
+                f.write("(" + str(code[0]) +", " + str(code[1])+ ")\n")
         return code_stream
     code_stream = gen_code_stream(index_stream, lzw_min_code_size, code_table)
 
@@ -156,6 +161,9 @@ def compress(index_stream, lzw_min_code_size):
     bitstream = (bitstream[0], bitstream[1] + pad_num)
 
     bytestream = bitstream[0].to_bytes(byteorder="little", length=bitstream[1] // 8)
+
+    with open("compressed_ver_codestream_dancing.bin", "wb") as f:
+        f.write(bytestream)
 
     while len(bytestream) > 0xFE:
         ret += (0xFE).to_bytes(1, byteorder="little")
