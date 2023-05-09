@@ -145,6 +145,8 @@ class DetailsTab(QWidget):
         self.frame_dim_label = QLabel(f"Width:Height : {img_desc.width, img_desc.height}")
         gce = self.parsed_gif.frames[0].graphic_control
         self.frame_delay = QLabel(f"Delay : {gce.delay_time if gce is not None and gce.delay_time > 0 else '100(default)'}")
+        self.transparency_index = QLabel(f"Transparent Index : {gce.transparent_color_index if gce is not None and gce.transparent_color_flag else 'None'}")
+
         gct = self.parsed_gif.gct
         gct_size = 2 ** (self.parsed_gif.gct_size+1)
         gct_normalised_dim = math.ceil(math.sqrt(gct_size))
@@ -204,6 +206,7 @@ class DetailsTab(QWidget):
         vboxLayout1.addWidget(self.frame_label)
         vboxLayout1.addWidget(self.frame_dim_label)
         vboxLayout1.addWidget(self.frame_delay)
+        vboxLayout1.addWidget(self.transparency_index)
 
         vboxLayout2 = QVBoxLayout()
         vboxLayout2.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -224,6 +227,7 @@ class DetailsTab(QWidget):
         self.frame_dim_label.setText(f"Width:Height : {img_desc.width, img_desc.height}")
         gce = self.parsed_gif.frames[cur_frame].graphic_control
         self.frame_delay.setText(f"Delay : {gce.delay_time if gce is not None and gce.delay_time > 0 else '100(default)'}")
+        self.transparency_index.setText(f"Transparent Index : {gce.transparent_color_index if gce is not None and gce.transparent_color_flag else 'None'}")
 
         # LCT
         if self.parsed_gif.frames[cur_frame].img_descriptor.lct_flag:
