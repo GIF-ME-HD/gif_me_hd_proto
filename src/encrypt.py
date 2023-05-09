@@ -17,17 +17,18 @@ def encrypt(gif:GifData, key, n = 100) -> GifData:
         frame = gif.frames[
             rng.integers(0, total_frames)]
         # get random pixel
-        x = rng.integers(0, gif.width)
-        y = rng.integers(0, gif.height)
+        x = rng.integers(0, frame.img_descriptor.width)
+        y = rng.integers(0, frame.img_descriptor.height)
         # pertubation
-        color_perb = rng.integers(0, 256)   # exclusive of 256
+        color_perb = rng.integers(0, (2 ** (gif.gct_size+1)))   # exclusive of 256
         # apply pertubation
-        frame.frame_img_data =  apply_color_pertubation(gif, frame, x, y, color_perb)
+        apply_color_pertubation(gif, frame, x, y, color_perb)
 
 
 def apply_color_pertubation(gif:GifData, frame:GifFrame, x, y, color_perb):
+    access_index = y * frame.img_descriptor.width + x
     # get the index of the pixel to be mutated
-    pixel_index = frame.frame_img_data[y * frame.img_descriptor.width + x] # map 2D to 1D
+    pixel_index = frame.frame_img_data[access_index] # map 2D to 1D
     # we have to make sure the mutated color index result is in the color table
     # TODO: check if a mod() is needed here to make sure it fits within the color table
     if frame.img_descriptor.lct_flag:
@@ -36,27 +37,31 @@ def apply_color_pertubation(gif:GifData, frame:GifFrame, x, y, color_perb):
         pixel_index = pixel_index ^ color_perb # XOR
     else:
         raise Exception("No color table found!")
-    return pixel_index
+    frame.frame_img_data[access_index] = pixel_index
 
 
 if __name__ == "__main__":
     from parse import GifReader
     from encode import GIF_encoder
-    filename = "../dataset/sample_1.gif"
+    filename = "../dataset/sample-1.gif"
     from time import time
     
     gif_reader = GifReader(filename)
     gif = gif_reader.parse()
     
     # encrypt
-    
-    print("encrypt done!")
+
     enc_key = 12121313876456
-    encrypt(gif, enc_key, n = 100)
+    print("About to encrypt!")
+    encrypt(gif, enc_key, n = 100000)
+    print("encrypt done!")
     
-    # encoder = GIF_encoder("output1.gif")
-    # encoder.encode(gif_data, c1)
-    # encoder.to_file()
+    encoder = GIF_encoder("output1.gif")
+    from lzw_gif import compress
+    print("About to encode!")
+    encoder.encode(gif, compress)
+    print("encode done!")
+    encoder.to_file()
     
 
     print("Done!")
