@@ -357,7 +357,7 @@ class GifReader:
             if self.dv.peek_byte() == GIF_TRAILER or self.dv.offset == len(self.bytez)-1:
                 print("DONE")
                 self.dv.advance(1)
-                
+            
             # TODO: handles all extension, by saving the bytez associated with the extensions first
             elif Extension.is_extension(self.bytez, self.dv.offset):
                 print("EXTENSION")
@@ -377,7 +377,7 @@ class GifReader:
                 img_descriptor.height = self.dv.read_short()
 
                 packed = self.dv.read_byte()
-
+                
                 img_descriptor.lct_size = packed & 0b0000_0111
                 img_descriptor.sort_flag = is_bit_set(packed, 5)
                 img_descriptor.interlace_flag = is_bit_set(packed, 6)
@@ -519,7 +519,7 @@ class GIF_encoder:
             
                     
         # TODO: add the trailer byte
-
+        self.bytez += b'\x3B'
 
 
 def reshape_2d(lst, num):
@@ -626,6 +626,8 @@ def lzw_compression(rgb_triplet_image_data, color_table, code_size=2, string_for
         return string
     else:
         return result
+
+
 
 
 # TODO: converts encoded image data into 
