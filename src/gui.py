@@ -88,8 +88,6 @@ class DisplayTab(QWidget):
         windowLayout.addLayout(hboxLayout3)
         self.setLayout(windowLayout)
         
-        self.show()
-        
     def update_canvas(self):
         canvas = QPixmap(self.parsed_gif.width, self.parsed_gif.height)
         canvas.fill(Qt.cyan)
