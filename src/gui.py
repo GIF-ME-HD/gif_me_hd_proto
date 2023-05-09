@@ -139,6 +139,7 @@ class DetailsTab(QWidget):
 
     def initUI(self):
         self.filename_label = QLabel(f'Filename : {self.file_name}')
+        self.filename_label.setWordWrap(True)
         self.frame_label = QLabel("Cur Frame: 0")
         img_desc = self.parsed_gif.frames[0].img_descriptor
         self.frame_dim_label = QLabel(f"Width:Height : {img_desc.width, img_desc.height}")
