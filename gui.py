@@ -4,8 +4,8 @@ import PySide6
 from PySide6 import QtGui
 
 from PySide6.QtWidgets import QTreeView, QApplication, QHeaderView, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QTabWidget, QFileDialog, QLabel
-from PySide6.QtGui import QPixmap
-from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap, QBrush, QPen
+from PySide6.QtCore import Qt, Signal, QObject
 
 
 from qt_material import apply_stylesheet
@@ -14,34 +14,32 @@ import json
 import gzip
 
 from parse import *
-class DisplayTab(QWidget):
 
-    def __init__(self, filename: str):
+class FrameRef(QObject):
+    changed_signal = Signal()
+    def __init__(self, current = 0):
         super().__init__()
-        self.filename = filename
+        self.cur_frame = current
+
+class DisplayTab(QWidget):
+    def __init__(self, gif:GifData, frame_ref:FrameRef):
+        super().__init__()
         self.left = 10
         self.top = 10
         self.width = 800
         self.height = 480
+        self.parsed_gif = gif
 
-        self.cur_frame = 0
+        self.cur_frame = frame_ref
         self.scale = (1, 1)
-
-        self.parse_image(filename)
         self.initUI()
         self.update_canvas()
-
-    def parse_image(self, filename: str):
-        img = GifReader(filename)
-        self.parsed_img = img.parse()
-
     
     def advance_frame(self, offset=1):
-        if self.cur_frame+offset < len(self.parsed_img.frames) and\
-            self.cur_frame+offset >= 0:
-            self.cur_frame += offset
-            self.update_canvas()
-            self.frame_label.setText(f"Cur Frame: {self.cur_frame}")
+        if self.cur_frame.cur_frame+offset < len(self.parsed_gif.frames) and\
+            self.cur_frame.cur_frame+offset >= 0:
+            self.cur_frame.cur_frame += offset
+            self.frame_label.setText(f"Cur Frame: {self.cur_frame.cur_frame}")
     
     def initUI(self):
         self.setGeometry(self.left, self.top, self.width, self.height)
@@ -51,55 +49,121 @@ class DisplayTab(QWidget):
         self.next_frame_button = QPushButton()
         self.next_frame_button.setText("Next Frame")
         self.next_frame_button.clicked.connect(lambda _: self.advance_frame())
-
+        self.next_frame_button.clicked.connect(self.cur_frame.changed_signal)
+        
         self.prev_frame_button = QPushButton()
         self.prev_frame_button.setText("Prev Frame")
         self.prev_frame_button.clicked.connect(lambda _: self.advance_frame(-1))
+        self.prev_frame_button.clicked.connect(self.cur_frame.changed_signal)
+        
+        # change the scale of the image
+        self.zoomin_btn = QPushButton()
+        self.zoomin_btn.setText("Zoom In")
+        self.zoomin_btn.clicked.connect(lambda _: self.change_scale("incr"))
+        
+        self.zoomout_btn = QPushButton()
+        self.zoomout_btn.setText("Zoom Out")
+        self.zoomout_btn.clicked.connect(lambda _: self.change_scale("decr"))
 
         self.label = QLabel()
-        canvas = QPixmap(self.parsed_img.width, self.parsed_img.height)
+        canvas = QPixmap(self.parsed_gif.width, self.parsed_gif.height)
         canvas.fill(Qt.black)
+        
         self.label.setPixmap(canvas)
         windowLayout = QVBoxLayout()
-        hboxLayout = QHBoxLayout()
-        hboxLayout.addWidget(self.label)
-        hboxLayout.addWidget(self.next_frame_button)
-        hboxLayout.addWidget(self.prev_frame_button)
+        
+        hboxLayout1 = QHBoxLayout()
+        hboxLayout1.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        hboxLayout1.addWidget(self.label)
+        
+        hboxLayout2 = QHBoxLayout()
+        hboxLayout2.addWidget(self.zoomout_btn)
+        hboxLayout2.addWidget(self.zoomin_btn)
+
+        hboxLayout3 = QHBoxLayout()
+        hboxLayout3.addWidget(self.prev_frame_button)
+        hboxLayout3.addWidget(self.next_frame_button)
+
         windowLayout.addWidget(self.frame_label)
 
-        windowLayout.addLayout(hboxLayout)
+        windowLayout.addLayout(hboxLayout1)
+        windowLayout.addLayout(hboxLayout2)
+        windowLayout.addLayout(hboxLayout3)
         self.setLayout(windowLayout)
         
         self.show()
+        
     def update_canvas(self):
-        # canvas = self.label.pixmap()
-        canvas = QPixmap(self.parsed_img.width, self.parsed_img.height)
-        canvas.fill(Qt.black)
+        canvas = QPixmap(self.parsed_gif.width, self.parsed_gif.height)
+        canvas.fill(Qt.cyan)
         painter = QtGui.QPainter(canvas)
-        pen = QtGui.QPen()
+        pen = QPen()
         pen.setWidth(1)
-        for y in range(self.parsed_img.height):
-            for x in range(self.parsed_img.width):
-                drawn_frame = self.parsed_img.frames[self.cur_frame]
-                rgb = drawn_frame.frame_img_data.rgb_lst[y * self.parsed_img.width + x]
+        drawn_frame = self.parsed_gif.frames[self.cur_frame.cur_frame]
+        for y in range(drawn_frame.img_descriptor.height):
+            for x in range(drawn_frame.img_descriptor.width):
+                rgb = drawn_frame.frame_img_data.rgb_lst[y * drawn_frame.img_descriptor.width + x]
+                global_x = x + drawn_frame.img_descriptor.left
+                global_y = y + drawn_frame.img_descriptor.top
                 pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
                 # pen.setColor(QtGui.QColor('red'))
                 painter.setPen(pen)
-                painter.drawPoint(x, y)
+                painter.drawPoint(global_x, global_y)
         painter.end()
-        canvas = canvas.scaled(self.parsed_img.width*self.scale[0], 
-                               self.parsed_img.width*self.scale[1])
+        canvas = canvas.scaled(self.parsed_gif.width*self.scale[0], 
+                               self.parsed_gif.width*self.scale[1])
         self.label.setPixmap(canvas)
 
+    def change_scale(self, incr_or_decr, offset = 0.1):
+        # NOTE: each click gives a 10% change in size
+        if incr_or_decr == "incr":
+            self.scale = (self.scale[0] + 0.1, self.scale[1] + 0.1)
+        elif incr_or_decr == "decr":
+            self.scale = (self.scale[0] - 0.1, self.scale[1] - 0.1)
+        else:
+            raise Exception("Invalid incr_or_decr value")
+        # update canvas with new scale
+        self.update_canvas()
+
+class DetailsTab(QWidget):
+    def __init__(self, gif:GifData, frame_ref:FrameRef):
+        super().__init__()
+        self.parsed_gif = gif
+        self.cur_frame = frame_ref
+        self.initUI()
+        self.updateCanvas()
+
+    def initUI(self):
+        self.frame_label = QLabel("Cur Frame: 0")
+        img_desc = self.parsed_gif.frames[0].img_descriptor
+        self.frame_dim_label = QLabel(f"(Width:Height) : {img_desc.width, img_desc.height}")
+        # TODO : Update this to use the one in GCExt
+        self.frame_delay = QLabel("0")
+        self.gct = self.parsed_gif.gct
+
+    def updateCanvas(self):
+        pass
+
+
+    
+
+
+
 if __name__ == '__main__':
-    def add_tabs(tabs):
+    def add_tabs(tabs:QTabWidget):
         tabs.clear()
         w.resize(800, 500)
         my_file  = QFileDialog.getOpenFileName(None, "Select GIF file", "", "Images (*.gif)")
         my_file = my_file[0]
         tabs.resize(800, 1000)
-        tabs.addTab(DisplayTab(my_file), "Display")
-
+        # Parse image
+        frame_ref = FrameRef()
+        img = GifReader(my_file).parse()
+        display = DisplayTab(img, frame_ref)
+        details = DetailsTab(img, frame_ref)
+        tabs.addTab(display, "Display")
+        tabs.addTab(details, "Details")
+        frame_ref.changed_signal.connect(display.update_canvas)
 
 
     app = QApplication(sys.argv)
