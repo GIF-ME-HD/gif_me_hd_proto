@@ -55,11 +55,11 @@ def decompress(bytestream):
     index_stream += code_table[code]
 
     prev_code = code
-    codes = [code]
+    codes = [(code, cur_code_size)]
     while True:
         code = get_rightmost_n_bits(code_stream, cur_code_size) # get the current code from byte stream
         code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size) # exhaust the current code from byte stream
-        codes.append(code)
+        codes.append((code, cur_code_size))
         if code in code_table:
             # encountered clear code 
             if type(code_table[code]) is ClearCodeInv:
@@ -69,6 +69,7 @@ def decompress(bytestream):
 
                 code = get_rightmost_n_bits(code_stream, cur_code_size)
                 code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
+                codes.append((code, cur_code_size))
 
                 index_stream += code_table[code]
                 prev_code = code
@@ -120,15 +121,17 @@ def compress(index_stream, lzw_min_code_size):
             if lst_to_str(index_buffer+k) in code_table:
                 index_buffer = index_buffer + k
             else:
+                code_table[lst_to_str(index_buffer + k)] = next_smallest_code
+                code_stream.append((code_table[lst_to_str(index_buffer)], cur_code_size))
                 if next_smallest_code == 4096:
                     # Reset
                     code_table = create_code_table(lzw_min_code_size)
                     code_stream.append((code_table[CLEAR_CODE], cur_code_size))
+                    cur_code_size = first_code_size
                     index_buffer = k
                     next_smallest_code = (2 ** lzw_min_code_size)+2
+                    continue
 
-                code_table[lst_to_str(index_buffer + k)] = next_smallest_code
-                code_stream.append((code_table[lst_to_str(index_buffer)], cur_code_size))
                 if next_smallest_code == 2 ** cur_code_size:
                     cur_code_size += 1
                 next_smallest_code += 1
@@ -136,6 +139,7 @@ def compress(index_stream, lzw_min_code_size):
         code_stream.append((code_table[lst_to_str(index_buffer)], cur_code_size))
         # Send EOI
         code_stream.append((code_table[EOI_CODE], cur_code_size))
+
         return code_stream
     code_stream = gen_code_stream(index_stream, lzw_min_code_size, code_table)
 
@@ -154,16 +158,19 @@ def compress(index_stream, lzw_min_code_size):
 
     bytestream = bitstream[0].to_bytes(byteorder="little", length=bitstream[1] // 8)
 
-    while len(bytestream) > 0xFF:
-        ret += (0xFF).to_bytes(1, byteorder="little")
-        ret += bytestream[:0xFF]
-        bytestream = bytestream[0xFF:]
+    # making it into one giant block in the form of an integer
+    # each sub block is 255 long , we detect if this current sub block is lesser than 255 long
+    while len(bytestream) > 0xFE:
+        ret += (0xFE).to_bytes(1, byteorder="little")
+        ret += bytestream[:0xFE]
+        bytestream = bytestream[0xFE:]
+    # appending the last sub block that is not 255 long
     if len(bytestream) != 0:
         ret += (len(bytestream)).to_bytes(1, byteorder="little")
         ret += bytestream[:len(bytestream)]
     ret += b"\x00"
     bytestream = bytestream[len(bytestream):]
-
+    
     return ret
 
 
@@ -175,7 +182,7 @@ if __name__ == '__main__':
     print(decompressed_data)
     assert decompressed_data == input_indices
     
-    # # Future use ceil(log(len(color_table), 2))
+    # Future use ceil(log(len(color_table), 2))
     # lzw_min_code_size = compressed_data[0]
     # decompressed_data = input_indices
     # compressed_data = compress(decompressed_data, lzw_min_code_size)
