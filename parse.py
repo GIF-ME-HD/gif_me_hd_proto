@@ -429,25 +429,11 @@ class GIF_encoder:
         # the header block (signature + version)
         self.bytez = DEFAULT_HEADER
 
-        # packed_field = self.dv.read_byte()
-
-        """
-        NOTE: logical screen descriptor
-
-        # packed_field = self.dv.read_byte()
-        # gif_data.gct_size = packed_field & 0b000_0111
-        # gif_data.lct_sort_flag = is_bit_set(packed_field, 3)
-        # gif_data.color_resolution = packed_field & 0b0111_0000
-        # gif_data.gct_flag = is_bit_set(packed_field, 7)
-
-        # gif_data.bf_color_index = self.dv.read_byte()
-        # gif_data.pixel_aspect_ratio = self.dv.read_byte()
-        """
-        
+        # NOTE: logical screen descriptor
         # canvas width and height
         self.bytez += gif_data.width.to_bytes(2, byteorder='little')
         self.bytez += gif_data.height.to_bytes(2, byteorder='little')
-
+        # packed field
         packed_field = 0b0000_0000
         packed_field = packed_field | gif_data.gct_size
         packed_field = packed_field | (int(gif_data.gct_sort_flag) << 3)
@@ -474,7 +460,6 @@ class GIF_encoder:
             img_descriptor = gifframe.img_descriptor
             self.bytez += gifframe.img_descriptor.to_bytez()
             
-
             # TODO: encoding & encryption of the ImageData part of the GifData
             from lzw_gif import compress
             import math
@@ -502,39 +487,6 @@ def reshape_2d(lst, num):
 def is_bit_set(data, bit_num):
     return bool(((1 << bit_num) & data))
 
-
-
-
-# TODO: create our own hash table using python list with our own hash function if there is intensive memory usage issues
-
-
-
-# TODO: iniitialize the code table as a hash table which is dependent on the code size given
-# NOTE: assume that we already know what code_size to use
-def init_gif_lzw_code_table(color_table, code_size=12):
-    # The GIF format allows sizes as small as 2 bits and as large as 12 bits. 
-    # This minimum code size value is typically the number of bits/pixel of the image.
-
-    # NOTE: the color table is a unique list of RGBTriplets
-    N = len(color_table)  # N , the color table size
-    
-    # NOTE: raise exception if 2 ^ code_size >= color_table_size + 2 (means that the code size is not enough to support the number of possible color indices in the color table   )
-    assert(pow(2, code_size) >= N + 2) # +2 because of clear code and EOI code
-
-    # initiailize code table as a hash table, add a code for each color in the color table (covering all the roots)
-    # NOTE: using hash table speeds up the searching for a code string for each iteration
-    code_table = {}
-    for i in range(N):
-        rgb_triplet = color_table[i]
-        code_table[str(rgb_triplet)] = i	# adds each ASCII character with associated code to the hash table, e.g. table['A'] = 97
-    
-    # add clear code and EOI code
-    i += 1
-    code_table["<CC>"] = i
-    i += 1
-    code_table["<EOI>"] = i
-
-    return code_table
 
 
 
