@@ -90,8 +90,6 @@ def decompress(bytestream):
         next_smallest_code += 1
         prev_code = code    # update prev code
 
-
-    print(code_stream)
     return index_stream
 
 

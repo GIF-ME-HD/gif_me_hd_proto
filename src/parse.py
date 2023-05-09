@@ -69,7 +69,6 @@ class GifReader:
 
             # TODO: handles all extension, by saving the bytez associated with the extensions first
             elif Extension.is_extension(self.data_reader.bytez, self.data_reader.offset):
-                print("EXTENSION")
                 extension = Extension.create_extension(
                     self.data_reader.bytez, self.data_reader.offset)
                 self.data_reader.advance(extension.size)
@@ -117,7 +116,6 @@ class GifReader:
 
                 minimum_code_size = self.data_reader.read_byte()
                 size = get_sub_block_size(self.data_reader.bytez, self.data_reader.offset)
-                # TODO : Parsing of Image Data with LZW Decompression
                 frame.frame_img_data = decompress(minimum_code_size.to_bytes(1, byteorder="big") + self.data_reader.bytez[self.data_reader.offset:self.data_reader.offset+size])
                 self.data_reader.advance(size)
             

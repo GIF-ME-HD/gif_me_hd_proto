@@ -37,14 +37,11 @@ class Extension:
         ext_type = bytez[offset+1]
         
         size = get_sub_block_size(bytez, offset+2)
-        print(f"Extension: {bytez[offset:offset+size+2]}")
-        print(f"Ext Size: {size}")
         
         if introducer != 0x21:
             raise Exception("Not a valid GIF Extension!")
 
         new_bytez = bytez[offset:offset+size+2]
-        print(f"3+15+1 = {len(new_bytez)}")
         return EXTENSION_FACTORY_METHOD[ext_type](new_bytez)
 
 class GraphicsControlExt(Extension):
@@ -62,7 +59,7 @@ class GraphicsControlExt(Extension):
         self.disposal_method = (packed & 0b000_111_00) >> 2
         self.delay_time = (self.bytez[5] << 8) | self.bytez[4] 
         self.transparent_color_index = self.bytez[6]
-        print(f"Delay Time: {self.delay_time}")
+        # print(f"Delay Time: {self.delay_time}")
 
 
 class CommentExt(Extension):
