@@ -141,9 +141,6 @@ def compress(index_stream, lzw_min_code_size):
         # Send EOI
         code_stream.append((code_table[EOI_CODE], cur_code_size))
 
-        with open("compress_dancing_codestream_tuples.txt", "w") as f:
-            for code in code_stream:
-                f.write("(" + str(code[0]) +", " + str(code[1])+ ")\n")
         return code_stream
     code_stream = gen_code_stream(index_stream, lzw_min_code_size, code_table)
 
@@ -161,9 +158,6 @@ def compress(index_stream, lzw_min_code_size):
     bitstream = (bitstream[0], bitstream[1] + pad_num)
 
     bytestream = bitstream[0].to_bytes(byteorder="little", length=bitstream[1] // 8)
-
-    with open("compressed_ver_codestream_dancing.bin", "wb") as f:
-        f.write(bytestream)
 
     while len(bytestream) > 0xFE:
         ret += (0xFE).to_bytes(1, byteorder="little")
