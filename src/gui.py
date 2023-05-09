@@ -1,12 +1,13 @@
-
 import sys
 
 from PySide6 import QtGui
-from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtGui import QBrush, QPen, QPixmap
+from PySide6.QtCore import QObject, Qt, Signal, QRect
+from PySide6.QtGui import QBrush, QPen, QPixmap, QPainter
 from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel,
                                QPushButton, QTabWidget, QVBoxLayout, QWidget)
 from qt_material import apply_stylesheet
+
+import math
 
 from data import GifData
 from parse import GifReader
@@ -127,6 +128,7 @@ class DisplayTab(QWidget):
         self.update_canvas()
 
 class DetailsTab(QWidget):
+    RECT_SIZE = 16
     def __init__(self, gif:GifData, frame_ref:FrameRef, file_name:str):
         super().__init__()
         self.parsed_gif = gif
@@ -143,6 +145,56 @@ class DetailsTab(QWidget):
         gce = self.parsed_gif.frames[0].graphic_control
         self.frame_delay = QLabel(f"Delay : {gce.delay_time if gce is not None and gce.delay_time > 0 else '100(default)'}")
         gct = self.parsed_gif.gct
+        gct_size = 2 ** (self.parsed_gif.gct_size+1)
+        gct_normalised_dim = math.ceil(math.sqrt(gct_size))
+
+        # Draw GCT
+        self.gct_title = QLabel('Global Color Table')
+        self.gct_label = QLabel()
+        gct_canvas = QPixmap(gct_normalised_dim*DetailsTab.RECT_SIZE, gct_normalised_dim*DetailsTab.RECT_SIZE)
+        gct_canvas.fill(Qt.black)
+        painter = QPainter(gct_canvas)
+        pen = QPen()
+        pen.setWidth(1)
+        pen.setColor(QtGui.QColor("#FFFFFF"))
+        brush = QBrush(Qt.BrushStyle.SolidPattern)
+        painter.setPen(pen)
+        painter.setBrush(brush)
+        for index, rgb in enumerate(gct):
+            x = index % gct_normalised_dim
+            y = index // gct_normalised_dim
+            brush.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
+            painter.setBrush(brush)
+            painter.drawRect(QRect(x*DetailsTab.RECT_SIZE,y*DetailsTab.RECT_SIZE,DetailsTab.RECT_SIZE, DetailsTab.RECT_SIZE))
+        painter.end()
+        self.gct_label.setPixmap(gct_canvas)
+
+        # Draw LCT
+        self.lct_title = QLabel('Local Color Table')
+        self.lct_label = QLabel()
+        if self.parsed_gif.frames[0].img_descriptor.lct_flag:
+            lct = self.parsed_gif.frames[0].img_descriptor.lct
+            lct_size = 2 ** (self.parsed_gif.frames[0].img_descriptor.lct_size+1)
+            lct_normalised_dim = math.ceil(math.sqrt(lct_size))
+            lct_canvas = QPixmap(lct_normalised_dim*DetailsTab.RECT_SIZE, lct_normalised_dim*DetailsTab.RECT_SIZE)
+            lct_canvas.fill(Qt.black)
+            painter = QPainter(lct_canvas)
+            pen = QPen()
+            pen.setWidth(1)
+            pen.setColor(QtGui.QColor("#FFFFFF"))
+            brush = QBrush(Qt.BrushStyle.SolidPattern)
+            painter.setPen(pen)
+            painter.setBrush(brush)
+            for index, rgb in enumerate(lct):
+                x = index % lct_normalised_dim
+                y = index // lct_normalised_dim
+                brush.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
+                painter.setBrush(brush)
+                painter.drawRect(QRect(x*DetailsTab.RECT_SIZE,y*DetailsTab.RECT_SIZE,DetailsTab.RECT_SIZE, DetailsTab.RECT_SIZE))
+            painter.end()
+            self.lct_label.setPixmap(lct_canvas)
+        else:
+            self.lct_label.setText("No Local Color Table")
         
         windowLayout = QHBoxLayout()
         vboxLayout1 = QVBoxLayout()
@@ -153,17 +205,50 @@ class DetailsTab(QWidget):
         vboxLayout1.addWidget(self.frame_delay)
 
         vboxLayout2 = QVBoxLayout()
+        vboxLayout2.setAlignment(Qt.AlignmentFlag.AlignTop)
+        vboxLayout2.addWidget(self.gct_title)
+        vboxLayout2.addWidget(self.gct_label)
+        vboxLayout2.addWidget(self.lct_title)
+        vboxLayout2.addWidget(self.lct_label)
 
         windowLayout.addLayout(vboxLayout1)
         windowLayout.addLayout(vboxLayout2)
         self.setLayout(windowLayout)
 
     def update_canvas(self):
-        self.frame_label.setText(f'Cur Frame: {self.cur_frame.cur_frame}')
-        img_desc = self.parsed_gif.frames[self.cur_frame.cur_frame].img_descriptor
+        cur_frame = self.cur_frame.cur_frame
+
+        self.frame_label.setText(f'Cur Frame: {cur_frame}')
+        img_desc = self.parsed_gif.frames[cur_frame].img_descriptor
         self.frame_dim_label.setText(f"Width:Height : {img_desc.width, img_desc.height}")
-        gce = self.parsed_gif.frames[self.cur_frame.cur_frame].graphic_control
+        gce = self.parsed_gif.frames[cur_frame].graphic_control
         self.frame_delay.setText(f"Delay : {gce.delay_time if gce is not None and gce.delay_time > 0 else '100(default)'}")
+
+        # LCT
+        if self.parsed_gif.frames[cur_frame].img_descriptor.lct_flag:
+            lct = self.parsed_gif.frames[cur_frame].img_descriptor.lct
+            lct_size = 2 ** (self.parsed_gif.frames[cur_frame].img_descriptor.lct_size+1)
+            lct_normalised_dim = math.ceil(math.sqrt(lct_size))
+            lct_canvas = QPixmap(lct_normalised_dim*DetailsTab.RECT_SIZE, lct_normalised_dim*DetailsTab.RECT_SIZE)
+            lct_canvas.fill(Qt.black)
+            painter = QPainter(lct_canvas)
+            pen = QPen()
+            pen.setWidth(1)
+            pen.setColor(QtGui.QColor("#FFFFFF"))
+            brush = QBrush(Qt.BrushStyle.SolidPattern)
+            painter.setPen(pen)
+            painter.setBrush(brush)
+            for index, rgb in enumerate(lct):
+                x = index % lct_normalised_dim
+                y = index // lct_normalised_dim
+                brush.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
+                painter.setBrush(brush)
+                painter.drawRect(QRect(x*DetailsTab.RECT_SIZE,y*DetailsTab.RECT_SIZE,DetailsTab.RECT_SIZE, DetailsTab.RECT_SIZE))
+            painter.end()
+            self.lct_label.setPixmap(lct_canvas)
+        else:
+            self.lct_label.setText("No Local Color Table")
+
 
 class EncryptTab(QWidget):
     def __init__(self, gif:GifData, cur_frame:FrameRef):
