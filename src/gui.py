@@ -12,6 +12,8 @@ import math
 from data import GifData
 from parse import GifReader
 from encrypt import encrypt
+from encode import GifEncoder
+from lzw_gif import compress
 
 # TODO: Separate out the different tabs into different places and each component to their own function
 class FrameRef(QObject):
@@ -284,11 +286,16 @@ class EncryptTab(QWidget):
         self.update_canvas()  
     
     def encrypt(self):
-        self.encrypted_gif = encrypt(self.parsed_gif, int(self.pw_textedit.toPlainText()), int(self.n_textedit.toPlainText()))
+        self.n = int(self.n_textedit.toPlainText())
+        self.pw = int(self.pw_textedit.toPlainText())
+        self.encrypted_gif = encrypt(self.parsed_gif, self.pw, self.n)
         self.update_canvas()
 
     def save(self):
-        pass
+        file_name = QFileDialog.getSaveFileName(None, "Save Encrypted GIF file", "", "Image (*.gif)")[0]
+        encoder = GifEncoder(file_name)
+        encoder.encode(self.encrypted_gif, compress)
+        encoder.to_file()
 
     def initUI(self):
         # Info pane Widgets
@@ -379,7 +386,9 @@ class EncryptTab(QWidget):
 
     
     def update_canvas(self):
-        
+        self.n_label.setText(f'N : {self.n}')
+        self.frame_label.setText(f'Cur Frame : {self.cur_frame}')
+        self.pw_label.setText(f'Passphrase : {self.pw}')
         canvas = QPixmap(self.encrypted_gif.width, self.encrypted_gif.height)
         canvas.fill(Qt.cyan)
         painter = QtGui.QPainter(canvas)
