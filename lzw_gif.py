@@ -183,7 +183,7 @@ if __name__ == '__main__':
     print(decompressed_data)
     assert decompressed_data == input_indices
     
-    # # Future use ceil(log(len(color_table), 2))
+    # Future use ceil(log(len(color_table), 2))
     # lzw_min_code_size = compressed_data[0]
     # decompressed_data = input_indices
     # compressed_data = compress(decompressed_data, lzw_min_code_size)
