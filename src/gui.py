@@ -4,15 +4,16 @@ from PySide6 import QtGui
 from PySide6.QtCore import QObject, Qt, Signal, QRect
 from PySide6.QtGui import QBrush, QPen, QPixmap, QPainter
 from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel,
-                               QPushButton, QTabWidget, QVBoxLayout, QWidget)
+                               QPushButton, QTabWidget, QVBoxLayout, QGridLayout, QWidget, QTextEdit)
 from qt_material import apply_stylesheet
 
 import math
 
 from data import GifData
 from parse import GifReader
+from encrypt import encrypt
 
-
+# TODO: Separate out the different tabs into different places and each component to their own function
 class FrameRef(QObject):
     changed_signal = Signal()
     def __init__(self, current = 0):
@@ -89,8 +90,6 @@ class DisplayTab(QWidget):
         windowLayout.addLayout(hboxLayout3)
         self.setLayout(windowLayout)
         
-        self.show()
-        
     def update_canvas(self):
         canvas = QPixmap(self.parsed_gif.width, self.parsed_gif.height)
         canvas.fill(Qt.cyan)
@@ -99,11 +98,11 @@ class DisplayTab(QWidget):
         pen.setWidth(1)
         drawn_frame = self.parsed_gif.frames[self.cur_frame.cur_frame]
         gct = self.parsed_gif.gct
+        bound_ct = gct
+        if drawn_frame.img_descriptor.lct_flag:
+            bound_ct = drawn_frame.img_descriptor.lct
         for y in range(drawn_frame.img_descriptor.height):
             for x in range(drawn_frame.img_descriptor.width):
-                bound_ct = gct
-                if drawn_frame.img_descriptor.lct_flag:
-                    bound_ct = drawn_frame.img_descriptor.lct
                 index = drawn_frame.frame_img_data[y * drawn_frame.img_descriptor.width + x]
                 rgb = bound_ct[index]
                 global_x = x + drawn_frame.img_descriptor.left
@@ -256,14 +255,154 @@ class DetailsTab(QWidget):
 
 
 class EncryptTab(QWidget):
-    def __init__(self, gif:GifData, cur_frame:FrameRef):
+    def __init__(self, gif:GifData):
         super().__init__()
         self.parsed_gif = gif
-        self.cur_frame = cur_frame
+        self.encrypted_gif = gif
+        self.cur_frame = 0
+        self.n = 0
+        self.pw = None
+        self.scale = (1,1)
         self.initUI()
     
-    def initUI():
+    def advance_frame(self, offset=1):
+        if self.cur_frame+offset < len(self.encrypted_gif.frames) and\
+            self.cur_frame+offset >= 0:
+            self.cur_frame += offset
+            self.frame_label.setText(f"Cur Frame: {self.cur_frame}")
+            self.update_canvas()
+  
+    def change_scale(self, incr_or_decr, offset = 0.1):
+        # NOTE: each click gives a 10% change in size
+        if incr_or_decr == "incr":
+            self.scale = (self.scale[0] + 0.1, self.scale[1] + 0.1)
+        elif incr_or_decr == "decr":
+            self.scale = (self.scale[0] - 0.1, self.scale[1] - 0.1)
+        else:
+            raise Exception("Invalid incr_or_decr value")
+        # update canvas with new scale
+        self.update_canvas()  
+    
+    def encrypt(self):
+        self.encrypted_gif = encrypt(self.parsed_gif, int(self.pw_textedit.toPlainText()), int(self.n_textedit.toPlainText()))
+        self.update_canvas()
+
+    def save(self):
         pass
+
+    def initUI(self):
+        # Info pane Widgets
+        self.frame_label = QLabel("Cur Frame: 0")
+        self.n_label = QLabel('N : 0')
+        self.pw_label = QLabel('Passphrase : ')
+
+        # Preview Pane Widgets
+        self.preview_label = QLabel()
+        canvas = QPixmap(self.encrypted_gif.width, self.encrypted_gif.height)
+        canvas.fill(Qt.cyan)
+        painter = QtGui.QPainter(canvas)
+        pen = QPen()
+        pen.setWidth(1)
+        drawn_frame = self.encrypted_gif.frames[self.cur_frame]
+        gct = self.encrypted_gif.gct
+        for y in range(drawn_frame.img_descriptor.height):
+            for x in range(drawn_frame.img_descriptor.width):
+                bound_ct = gct
+                if drawn_frame.img_descriptor.lct_flag:
+                    bound_ct = drawn_frame.img_descriptor.lct
+                index = drawn_frame.frame_img_data[y * drawn_frame.img_descriptor.width + x]
+                rgb = bound_ct[index]
+                global_x = x + drawn_frame.img_descriptor.left
+                global_y = y + drawn_frame.img_descriptor.top
+                pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
+                painter.setPen(pen)
+                painter.drawPoint(global_x, global_y)
+        painter.end()
+        canvas = canvas.scaled(self.encrypted_gif.width*self.scale[0], 
+                               self.encrypted_gif.width*self.scale[1])
+        self.preview_label.setPixmap(canvas)
+
+        self.next_frame_button = QPushButton("Next Frame")
+        self.next_frame_button.clicked.connect(lambda _: self.advance_frame())
+        
+        self.prev_frame_button = QPushButton("Prev Frame")
+        self.prev_frame_button.clicked.connect(lambda _: self.advance_frame(-1))
+        
+        # change the scale of the image
+        self.zoomin_btn = QPushButton("Zoom In")
+        self.zoomin_btn.clicked.connect(lambda _: self.change_scale("incr"))
+        
+        self.zoomout_btn = QPushButton("Zoom Out")
+        self.zoomout_btn.clicked.connect(lambda _: self.change_scale("decr"))
+
+        # user_input layout widgets
+        self.pw_title = QLabel('Password')
+        self.pw_textedit = QTextEdit()
+        self.pw_textedit.setToolTip("Password")
+        self.n_title = QLabel('N')
+        self.n_textedit = QTextEdit()
+        self.n_textedit.setToolTip("N")
+        self.encrypt_btn = QPushButton("Encrypt")
+        self.encrypt_btn.clicked.connect(lambda _: self.encrypt())
+        self.save_btn = QPushButton("Save")
+        self.save_btn.clicked.connect(lambda _: self.save())
+
+        info_pane_layout = QVBoxLayout()
+        info_pane_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        info_pane_layout.addWidget(self.frame_label)
+        info_pane_layout.addWidget(self.n_label)
+        info_pane_layout.addWidget(self.pw_label)
+
+        preview_layout = QVBoxLayout()
+        preview_layout.addWidget(self.preview_label)
+        preview_buttons_layout = QGridLayout()
+        preview_buttons_layout.addWidget(self.prev_frame_button, 0, 0)
+        preview_buttons_layout.addWidget(self.next_frame_button, 0, 1)
+        preview_buttons_layout.addWidget(self.zoomout_btn, 1, 0)
+        preview_buttons_layout.addWidget(self.zoomin_btn, 1, 1)
+        preview_layout.addItem(preview_buttons_layout)
+
+        user_input_layout = QVBoxLayout()
+        user_input_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        user_input_layout.addWidget(self.pw_title)
+        user_input_layout.addWidget(self.pw_textedit)
+        user_input_layout.addWidget(self.n_title)
+        user_input_layout.addWidget(self.n_textedit)
+        user_input_layout.addWidget(self.encrypt_btn)
+        user_input_layout.addWidget(self.save_btn)
+
+        window_layout = QHBoxLayout()
+        window_layout.addLayout(info_pane_layout)
+        window_layout.addLayout(preview_layout)
+        window_layout.addLayout(user_input_layout)
+        self.setLayout(window_layout)
+
+    
+    def update_canvas(self):
+        
+        canvas = QPixmap(self.encrypted_gif.width, self.encrypted_gif.height)
+        canvas.fill(Qt.cyan)
+        painter = QtGui.QPainter(canvas)
+        pen = QPen()
+        pen.setWidth(1)
+        drawn_frame = self.encrypted_gif.frames[self.cur_frame]
+        gct = self.encrypted_gif.gct
+        bound_ct = gct
+        if drawn_frame.img_descriptor.lct_flag:
+            bound_ct = drawn_frame.img_descriptor.lct
+        for y in range(drawn_frame.img_descriptor.height):
+            for x in range(drawn_frame.img_descriptor.width):
+                index = drawn_frame.frame_img_data[y * drawn_frame.img_descriptor.width + x]
+                rgb = bound_ct[index]
+                global_x = x + drawn_frame.img_descriptor.left
+                global_y = y + drawn_frame.img_descriptor.top
+                pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
+                painter.setPen(pen)
+                painter.drawPoint(global_x, global_y)
+        painter.end()
+        canvas = canvas.scaled(self.encrypted_gif.width*self.scale[0], 
+                               self.encrypted_gif.width*self.scale[1])
+        self.preview_label.setPixmap(canvas)
 
 if __name__ == '__main__':
     def add_tabs(tabs:QTabWidget):
@@ -277,8 +416,10 @@ if __name__ == '__main__':
         img = GifReader(file_name).parse()
         display = DisplayTab(img, frame_ref)
         details = DetailsTab(img, frame_ref, file_name)
+        encrypt = EncryptTab(img)
         tabs.addTab(display, "Display")
         tabs.addTab(details, "Details")
+        tabs.addTab(encrypt, "Encrypt")
         frame_ref.changed_signal.connect(display.update_canvas)
         frame_ref.changed_signal.connect(details.update_canvas)
 
