@@ -159,16 +159,19 @@ def compress(index_stream, lzw_min_code_size):
 
     bytestream = bitstream[0].to_bytes(byteorder="little", length=bitstream[1] // 8)
 
+    # making it into one giant block in the form of an integer
+    # each sub block is 255 long , we detect if this current sub block is lesser than 255 long
     while len(bytestream) > 0xFE:
         ret += (0xFE).to_bytes(1, byteorder="little")
         ret += bytestream[:0xFE]
         bytestream = bytestream[0xFE:]
+    # appending the last sub block that is not 255 long
     if len(bytestream) != 0:
         ret += (len(bytestream)).to_bytes(1, byteorder="little")
         ret += bytestream[:len(bytestream)]
     ret += b"\x00"
     bytestream = bytestream[len(bytestream):]
-
+    
     return ret
 
 
