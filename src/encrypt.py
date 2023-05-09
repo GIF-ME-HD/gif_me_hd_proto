@@ -13,7 +13,13 @@ def encrypt(gif:GifData, password, n = 100) -> GifData:
     rng = Generator(ChaCha(key=password2key(password, b""), rounds=ROUNDS))     # NOTE: now we asusme password is a integer
     
     total_frames = len(gif.frames)
-    
+
+    for _ in range(rng.integers(0, len(gif.gct) // 2)):
+        idx = rng.integers(0, len(gif.gct))
+        gif.gct[idx].r ^= rng.integers(0, 256)
+        gif.gct[idx].g ^= rng.integers(0, 256)
+        gif.gct[idx].b ^= rng.integers(0, 256)
+
     # do color pertubation for n times
     for i in range(n):        
         # get random frame
@@ -34,9 +40,9 @@ def encrypt(gif:GifData, password, n = 100) -> GifData:
 def password2key(password, salt):
     # salt is a buffer of bytes (16 or more bytes)
     # password should be of sensisble length (<= 1024)
-    dk = scrypt(password.encode(), salt=salt, n=4096, r=1, p=1)
-
-
+    ret = scrypt(password.encode(), salt=salt, n=4096, r=1, p=1)
+    ret = int.from_bytes(ret[:32], byteorder="big")
+    return ret
 
 # TODO: store the salt in the gif 
 def store_salt(filename): pass
