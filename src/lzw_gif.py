@@ -3,20 +3,15 @@
 CLEAR_CODE = "CC"
 EOI_CODE = "EOI"
 
+CLEAR_CODE_IDX = -1
+EOI_CODE_IDX = -2
+
 class ClearCodeInv:
     def __init__(self):
         pass
 class EoiCodeInv:
     def __init__(self):
         pass
-def create_code_table(lzw_min_code_size):
-    ret = {}
-    for i in range(2 ** lzw_min_code_size):
-        my_key = ",".join([str(_) for _ in [i]])
-        ret[my_key] = i
-    ret[CLEAR_CODE] = i+1
-    ret[EOI_CODE] = i+2
-    return ret
 
 def create_inverse_code_table(lzw_min_code_size):
     ret = {}
@@ -92,22 +87,115 @@ def decompress(bytestream):
 
     return index_stream
 
+def create_code_table_inverse(lzw_min_code_size):
+    root = CodeTableNode()
+    for i in range(2 ** lzw_min_code_size):
+        root.children.append((i, CodeTableNode()))
 
+    clear_code = CodeTableNode()
+    clear_code.is_clear_code = True
+    root.children.append((i+1, clear_code))
+
+    eoi_code = CodeTableNode()
+    eoi_code.is_eoi_code = True
+    root.children.append((i+2, eoi_code))
+
+class CodeTableNode:
+    def __init__(self, val):
+        self.value = val
+        self.children = []
+        self.is_clear_code = False
+        self.is_eoi_code = False
+
+def create_code_table(lzw_min_code_size):
+    ret = {}
+
+    root = CodeTableNode('root')
+    for i in range(2 ** lzw_min_code_size):
+        root.children.append((i, CodeTableNode(i)))
+
+    clear_code = CodeTableNode(i+1)
+    clear_code.is_clear_code = True
+    root.children.append((CLEAR_CODE_IDX, clear_code))
+
+    eoi_code = CodeTableNode(i+2)
+    eoi_code.is_eoi_code = True
+    root.children.append((EOI_CODE_IDX, eoi_code))
+
+    return root
+
+def in_comp_code(root, a, b):
+    cur_node = root
+    for num, _ in a:
+        found = False
+        for idx, (val, _) in enumerate(cur_node.children):
+            if val == num:
+                found = True
+                cur_node = cur_node.children[idx][1]
+                break
+        if not found:
+            return False
+    num, _ = b
+    found = False
+    for idx, (val, _) in enumerate(cur_node.children):
+        if val == num:
+            found = True
+            cur_node = cur_node.children[idx][1]
+            break
+    if not found:
+        return False
+    return True
+
+def set_comp_code(root, a, b, to_set):
+    cur_node = root
+    for num, _ in a:
+        found = False
+        for idx, (val, _) in enumerate(cur_node.children):
+            if val == num:
+                found = True
+                cur_node = cur_node.children[idx][1]
+                break
+        if not found:
+            next_node = CodeTableNode(None)
+            cur_node.children.append((num, next_node))
+            cur_node = next_node
+    num, _ = b
+    found = False
+    for idx, (val, _) in enumerate(cur_node.children):
+        if val == num:
+            found = True
+            cur_node = cur_node.children[idx][1]
+            break
+    if not found:
+        next_node = CodeTableNode(None)
+        cur_node.children.append((num, next_node))
+        cur_node = next_node
+    cur_node.value = to_set
+def comp_code_val(root, a):
+    cur_node = root
+    for num, _ in a:
+        found = False
+        for idx, (val, _) in enumerate(cur_node.children):
+            if val == num:
+                found = True
+                cur_node = cur_node.children[idx][1]
+                break
+        if not found:
+            return False
+    return cur_node.value
 def compress(index_stream, lzw_min_code_size):
     ret = b""
     ret += lzw_min_code_size.to_bytes(byteorder="big", length=1)
-    code_table = create_code_table(lzw_min_code_size)
+    code_table_root = create_code_table(lzw_min_code_size)
 
-    lst_to_str = lambda lst: ",".join([str(_[0]) for _ in lst])
-    str_to_lst = lambda s: [int(_) for _ in s.split(",")]
 
-    def gen_code_stream(index_stream, lzw_min_code_size, code_table):
+    def gen_code_stream(index_stream, lzw_min_code_size, code_table_root):
         code_stream = []
         first_code_size = lzw_min_code_size+1
         cur_code_size = first_code_size
 
         # Send Clear Code
-        code_stream.append((code_table[CLEAR_CODE], cur_code_size))
+        code_stream.append((comp_code_val(code_table_root, [(CLEAR_CODE_IDX, 0)]), cur_code_size))
 
         first_val = index_stream[0]
         index_buffer = [(first_val, cur_code_size)]
@@ -115,29 +203,29 @@ def compress(index_stream, lzw_min_code_size):
         next_smallest_code = (2 ** lzw_min_code_size)+2
 
         for next_ptr in range(1, len(index_stream)):
-            k = [(index_stream[next_ptr], cur_code_size)]
+            k = (index_stream[next_ptr], cur_code_size)
 
-            if lst_to_str(index_buffer+k) in code_table:
-                index_buffer = index_buffer + k
+            if in_comp_code(code_table_root, index_buffer,k):
+                index_buffer.append(k)
             else:
                 if next_smallest_code == 4096:
                     # Reset
-                    code_table = create_code_table(lzw_min_code_size)
-                    code_stream.append((code_table[CLEAR_CODE], cur_code_size))
-                    index_buffer = k
+                    code_table_root = create_code_table(lzw_min_code_size)
+                    code_stream.append((comp_code_val(code_table_root, [(CLEAR_CODE_IDX, 0)]), cur_code_size))
+                    index_buffer = [k]
                     next_smallest_code = (2 ** lzw_min_code_size)+2
 
-                code_table[lst_to_str(index_buffer + k)] = next_smallest_code
-                code_stream.append((code_table[lst_to_str(index_buffer)], cur_code_size))
+                set_comp_code(code_table_root, index_buffer,k, next_smallest_code)
+                code_stream.append((comp_code_val(code_table_root, index_buffer), cur_code_size))
                 if next_smallest_code == 2 ** cur_code_size:
                     cur_code_size += 1
                 next_smallest_code += 1
-                index_buffer = k
-        code_stream.append((code_table[lst_to_str(index_buffer)], cur_code_size))
+                index_buffer = [k]
+        code_stream.append((comp_code_val(code_table_root, index_buffer), cur_code_size))
         # Send EOI
-        code_stream.append((code_table[EOI_CODE], cur_code_size))
+        code_stream.append((comp_code_val(code_table_root, [(EOI_CODE_IDX, 0)]), cur_code_size))
         return code_stream
-    code_stream = gen_code_stream(index_stream, lzw_min_code_size, code_table)
+    code_stream = gen_code_stream(index_stream, lzw_min_code_size, code_table_root)
 
     def append_bits(a, b):
         num_a, num_a_len = a
@@ -176,9 +264,9 @@ if __name__ == '__main__':
     assert decompressed_data == input_indices
     
     # # Future use ceil(log(len(color_table), 2))
-    # lzw_min_code_size = compressed_data[0]
-    # decompressed_data = input_indices
-    # compressed_data = compress(decompressed_data, lzw_min_code_size)
-    # print(compressed_data)
+    lzw_min_code_size = compressed_data[0]
+    decompressed_data = input_indices
+    my_compressed_data = compress(decompressed_data, lzw_min_code_size)
+    assert compressed_data == my_compressed_data
 
 
