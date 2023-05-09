@@ -1,9 +1,10 @@
+import timeit
 from data import GifData
 from lzw_gif import compress
 import math
 
 DEFAULT_HEADER = b"GIF89a"
-GIF_TRAILER = 0x3B
+GIF_TRAILER = b"\x3B"
 
 class GIF_encoder:
     def __init__(self, filename):
@@ -32,10 +33,10 @@ class GIF_encoder:
         packed_field = packed_field | (int(gif_data.sort_flag) << 3)
         packed_field = packed_field | gif_data.color_resolution
         packed_field = packed_field | (int(gif_data.gct_flag) << 7)
-        self.bytez += packed_field.to_bytes(1, byteorder='big')
+        self.bytez += packed_field.to_bytes(1, byteorder='little')
 
-        self.bytez += gif_data.bg_color_index.to_bytes(1, byteorder='big')
-        self.bytez += gif_data.pixel_aspect_ratio.to_bytes(1, byteorder='big')
+        self.bytez += gif_data.bg_color_index.to_bytes(1, byteorder='little')
+        self.bytez += gif_data.pixel_aspect_ratio.to_bytes(1, byteorder='little')
 
         if gif_data.gct_flag:
             for i in range(2 ** (gif_data.gct_size + 1)):  # the number of RGB triplets is 2^(N+1)
@@ -51,3 +52,22 @@ class GIF_encoder:
             self.bytez += compress(gifframe.frame_img_data, math.ceil(math.log( 2 ** (gif_data.gct_size+1),2)))
 
         self.bytez += GIF_TRAILER
+        
+        
+if __name__ == "__main__":
+    from parse import GifReader
+    filename = "../dataset/Dancing.gif"
+    from time import time
+    
+    time1 = time()
+    
+    gif_reader = GifReader(filename)
+    gif_data = gif_reader.parse()
+    encoder = GIF_encoder("output.gif")
+    encoder.encode(gif_data)
+    encoder.to_file()
+
+    time2 = time()
+
+    print("Time taken: ", time2-time1)
+    print("Done!")
