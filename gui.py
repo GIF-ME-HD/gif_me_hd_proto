@@ -102,7 +102,7 @@ class DisplayTab(QWidget):
             for x in range(drawn_frame.img_descriptor.width):
                 rgb = drawn_frame.frame_img_data.rgb_lst[y * drawn_frame.img_descriptor.width + x]
                 global_x = x + drawn_frame.img_descriptor.left
-                global_y = y + drawn_frame.img_descriptor.top
+                global_y = y + drawn_frame.img_descriptor.top 
                 pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
                 # pen.setColor(QtGui.QColor('red'))
                 painter.setPen(pen)

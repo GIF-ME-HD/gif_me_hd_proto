@@ -3,6 +3,7 @@ from PIL import GifImagePlugin
 from PIL import Image
 from io import BytesIO
 import imageio.v3 as iio
+from lzw_gif import decompress
 import numpy as np
 import os
 DEFAULT_HEADER = b"GIF89a"
@@ -167,12 +168,14 @@ class GifData:
 
 # TODO: rework the ImageData class for each frame instead of handling for the whole GifData class
 class ImageData:
-    def __init__(self, indices, color_table):
+    def __init__(self, indices, color_table, code_size, block_size):
         # TODO: now we still assume that each image frame matches the canva size of the GIF
         self.indices = indices
         self.color_table = color_table
         self.rgb_lst = [color_table[_] for _ in indices]
-    
+        self.code_size = code_size
+        self.block_size = block_size
+
     def __repr__(self):
         string = f"ImageData[{self.width}x{self.height})]\n"
         for i in range(len(self.frames_rgb)):
@@ -329,6 +332,8 @@ class GifReader:
                 # print(f"After extension: {self.bytez[self.dv.offset:]}")
 
             elif ImageDescriptor.is_image_descriptor(self.bytez, self.dv.offset):
+                # get current gif frame
+                gifframe = gif_data.frames[frame_ctr]
                 img_descriptor = ImageDescriptor()
                 print("IMAGE DESCRIPTOR")
                 self.dv.advance(1)
@@ -355,42 +360,43 @@ class GifReader:
                     print(reshaped_palette)
                     display_color_table(reshaped_palette, "LCT " + str(frame_ctr))
 
-                gif_data.img_descriptor = img_descriptor
-                # NOTE: add to list of image descriptors
-                image_descriptors.append(img_descriptor)
-
-            # It is ImageData
-            else:
-                frame_ctr += 1
-                gif_data.frames.append(GifFrame())
+                gifframe.img_descriptor = img_descriptor
+                
                 # Ignore first byte
                 print("IMAGE DATA")
-                # import binascii
-                # print(binascii.hexlify(self.bytez[self.dv.offset:]))
 
                 #TODO: do something with the size, the parsing for the lzw-encoded image data starts here
                 minimum_code_size = self.dv.read_byte()
-                size = get_sub_block_size(self.bytez, self.dv.offset)
+                block_size = get_sub_block_size(self.bytez, self.dv.offset)
 
-                from lzw_gif import decompress
-                indices = decompress(minimum_code_size.to_bytes(1, byteorder="big") + self.bytez[self.dv.offset:self.dv.offset+size])
-
-
-                imagedata = ImageData(indices, gif_data.gct)
-                imagedatas.append(imagedata)
+                # pass in raw byte stream to decompress()
+                indices = decompress(minimum_code_size.to_bytes(1, byteorder="big") + self.bytez[self.dv.offset:self.dv.offset+block_size])
+                
+                # if local color table exists
+                if img_descriptor.lct_flag:
+                    # pass in the byte stream
+                    imagedata = ImageData(indices, img_descriptor.lct, minimum_code_size, block_size)
+                elif gif_data.gct_flag:
+                    imagedata = ImageData(indices, gif_data.gct, minimum_code_size, block_size)
+                else:
+                    raise Exception("No LCT or GCT table!")
+                gifframe.frame_img_data = imagedata
+                # imagedatas.append(imagedata)
     
-                self.dv.advance(size)
-    
-                print(f"ImageData size: {size}")
+                self.dv.advance(block_size)
+                gif_data.frames.append(GifFrame())
+                frame_ctr += 1
+                print(f"ImageData size: {block_size}")
+
 
         # NOTE: since we do not know how many frames there are, we have added an extra frame
         frame_ctr -= 1
         gif_data.frames = gif_data.frames[:-1]
         
         # TODO: add ImageData and ImgDescriptor to GifFrames
-        for i in range(frame_ctr+1):
-            gif_data.frames[i].img_descriptor = image_descriptors[i]
-            gif_data.frames[i].frame_img_data = imagedatas[i]
+        # for i in range(frame_ctr+1):
+        #     gif_data.frames[i].img_descriptor = image_descriptors[i]
+        #     gif_data.frames[i].frame_img_data = imagedatas[i]
 
         return gif_data
 
