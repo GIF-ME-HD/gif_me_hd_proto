@@ -3,7 +3,7 @@ import sys
 
 from PySide6 import QtGui
 from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtGui import QBrush, QPen, QPixmap
+from PySide6.QtGui import QImage, QPen, QPixmap
 from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel,
                                QPushButton, QTabWidget, QVBoxLayout, QWidget)
 from qt_material import apply_stylesheet
@@ -91,23 +91,21 @@ class DisplayTab(QWidget):
     def update_canvas(self):
         canvas = QPixmap(self.parsed_gif.width, self.parsed_gif.height)
         canvas.fill(Qt.cyan)
+
         painter = QtGui.QPainter(canvas)
-        pen = QPen()
-        pen.setWidth(1)
         drawn_frame = self.parsed_gif.frames[self.cur_frame.cur_frame]
         gct = self.parsed_gif.gct
-        for y in range(drawn_frame.img_descriptor.height):
-            for x in range(drawn_frame.img_descriptor.width):
-                bound_ct = gct
-                if drawn_frame.img_descriptor.lct_flag:
-                    bound_ct = drawn_frame.img_descriptor.lct
-                index = drawn_frame.frame_img_data[y * drawn_frame.img_descriptor.width + x]
-                rgb = bound_ct[index]
-                global_x = x + drawn_frame.img_descriptor.left
-                global_y = y + drawn_frame.img_descriptor.top
-                pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
-                painter.setPen(pen)
-                painter.drawPoint(global_x, global_y)
+        bound_ct = gct
+        if drawn_frame.img_descriptor.lct_flag:
+            bound_ct = drawn_frame.img_descriptor.lct
+
+        image_bytes = b''.join([bound_ct[_].to_byte_string() for _ in drawn_frame.frame_img_data])
+        image = QImage(image_bytes,
+                       drawn_frame.img_descriptor.width,
+                       drawn_frame.img_descriptor.height,
+                       drawn_frame.img_descriptor.width * 3,
+                       QImage.Format.Format_RGB888)
+        painter.drawImage(drawn_frame.img_descriptor.left, drawn_frame.img_descriptor.top, image)
         painter.end()
         canvas = canvas.scaled(self.parsed_gif.width*self.scale[0], 
                                self.parsed_gif.width*self.scale[1])
