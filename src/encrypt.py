@@ -1,13 +1,16 @@
+from hashlib import pbkdf2_hmac
 from numpy.random import Generator
 from randomgen import ChaCha
-
+from copy import deepcopy
 from data import GifData, GifFrame
 
 ROUNDS = 12
-def encrypt(gif:GifData, key, n = 100) -> GifData:
-    
+
+def encrypt(gif:GifData, password, n = 100) -> GifData:
+    gif = deepcopy(gif)
     # NOTE: seed the random generator with enc key
-    rng = Generator(ChaCha(key=key, rounds=12))
+    # TODO: future work, do not make the password the key directly
+    rng = Generator(ChaCha(key=password, rounds=ROUNDS))     # NOTE: now we asusme password is a integer
     
     total_frames = len(gif.frames)
     
@@ -23,6 +26,23 @@ def encrypt(gif:GifData, key, n = 100) -> GifData:
         color_perb = rng.integers(0, (2 ** (gif.gct_size+1)))   # exclusive of 256
         # apply pertubation
         apply_color_pertubation(gif, frame, x, y, color_perb)
+
+    return gif
+
+
+# TODO: do not use the password as the encryption key directly
+def password2key(password, salt):
+    # salt is a buffer of bytes (16 or more bytes)
+    # password should be of sensisble length (<= 1024)
+    password =  b'password'
+    salt = b'bad salt'*2
+    dk = pbkdf2_hmac('sha256', password, salt, our_app_iters)
+
+    pass
+
+
+# TODO: store the salt in the gif 
+def store_salt(filename): pass
 
 
 def apply_color_pertubation(gif:GifData, frame:GifFrame, x, y, color_perb):
@@ -43,25 +63,28 @@ def apply_color_pertubation(gif:GifData, frame:GifFrame, x, y, color_perb):
 if __name__ == "__main__":
     from parse import GifReader
     from encode import GIF_encoder
-    filename = "../dataset/sample-1.gif"
+    # filename = "../dataset/output1.gif"
+    # filename = "../dataset/sample.gif"
+    filename = "./output.gif"
     from time import time
+    from lzw_gif import compress
     
     gif_reader = GifReader(filename)
     gif = gif_reader.parse()
     
     # encrypt
-
     enc_key = 12121313876456
     print("About to encrypt!")
-    encrypt(gif, enc_key, n = 100000)
+    
+    encrypted = encrypt(gif, enc_key, n = 100000)
     print("encrypt done!")
     
-    encoder = GIF_encoder("output1.gif")
-    from lzw_gif import compress
+    # saving
+    encoder = GIF_encoder("decrypted.gif")
     print("About to encode!")
-    encoder.encode(gif, compress)
+    encoder.encode(encrypted, compress)
+    
     print("encode done!")
     encoder.to_file()
-    
-
+        
     print("Done!")
