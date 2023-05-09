@@ -29,7 +29,7 @@ class DisplayTab(QWidget):
 
         self.cur_frame = frame_ref
         self.scale = (1, 1)
-        self.init()
+        self.initUI()
         self.update_canvas()
     
     def advance_frame(self, offset=1):
@@ -38,7 +38,7 @@ class DisplayTab(QWidget):
             self.cur_frame.cur_frame += offset
             self.frame_label.setText(f"Cur Frame: {self.cur_frame.cur_frame}")
     
-    def init(self):
+    def initUI(self):
         self.setGeometry(self.left, self.top, self.width, self.height)
 
         self.frame_label = QLabel("Cur Frame: 0")
@@ -132,10 +132,10 @@ class DetailsTab(QWidget):
         self.parsed_gif = gif
         self.cur_frame = frame_ref
         self.file_name = file_name
-        self.init()
+        self.initUI()
         self.update_canvas()
 
-    def init(self):
+    def initUI(self):
         self.filename_label = QLabel(f'Filename : {self.file_name}')
         self.frame_label = QLabel("Cur Frame: 0")
         img_desc = self.parsed_gif.frames[0].img_descriptor
@@ -165,10 +165,15 @@ class DetailsTab(QWidget):
         gce = self.parsed_gif.frames[self.cur_frame.cur_frame].graphic_control
         self.frame_delay.setText(f"Delay : {gce.delay_time if gce is not None and gce.delay_time > 0 else '100(default)'}")
 
-
+class EncryptTab(QWidget):
+    def __init__(self, gif:GifData, cur_frame:FrameRef):
+        super().__init__()
+        self.parsed_gif = gif
+        self.cur_frame = cur_frame
+        self.initUI()
     
-
-
+    def initUI():
+        pass
 
 if __name__ == '__main__':
     def add_tabs(tabs:QTabWidget):
