@@ -1,9 +1,11 @@
+import timeit
 from data import GifData
-from lzw_gif import compress
+from lzw_gif import compress as c1
+from lzw_gif2 import compress as c2
 import math
 
 DEFAULT_HEADER = b"GIF89a"
-GIF_TRAILER = b'\x3B'
+GIF_TRAILER = b"\x3B"
 
 class GifEncoder:
     def __init__(self, filename):
@@ -21,7 +23,7 @@ class GifEncoder:
         with open(self.filename, "wb") as f:
             f.write(self.bytez)
 
-    def encode(self, gif_data:GifData):
+    def encode(self, gif_data:GifData, compressfunc):
         self.bytez = DEFAULT_HEADER
 
         # logical screen descriptor
@@ -32,10 +34,10 @@ class GifEncoder:
         packed_field = packed_field | (int(gif_data.sort_flag) << 3)
         packed_field = packed_field | gif_data.color_resolution
         packed_field = packed_field | (int(gif_data.gct_flag) << 7)
-        self.bytez += packed_field.to_bytes(1, byteorder='big')
+        self.bytez += packed_field.to_bytes(1, byteorder='little')
 
-        self.bytez += gif_data.bg_color_index.to_bytes(1, byteorder='big')
-        self.bytez += gif_data.pixel_aspect_ratio.to_bytes(1, byteorder='big')
+        self.bytez += gif_data.bg_color_index.to_bytes(1, byteorder='little')
+        self.bytez += gif_data.pixel_aspect_ratio.to_bytes(1, byteorder='little')
 
         if gif_data.gct_flag:
             for i in range(2 ** (gif_data.gct_size + 1)):  # the number of RGB triplets is 2^(N+1)
@@ -49,6 +51,33 @@ class GifEncoder:
         for gifframe in gif_data.frames:
             self.bytez += gifframe.graphic_control.to_bytes()
             self.bytez += gifframe.img_descriptor.to_bytez()
-            self.bytez += compress(gifframe.frame_img_data, math.ceil(math.log( 2 ** (gif_data.gct_size+1),2)))
+            self.bytez += compressfunc(gifframe.frame_img_data, math.ceil(math.log( 2 ** (gif_data.gct_size+1),2)))
 
         self.bytez += GIF_TRAILER
+        
+
+if __name__ == "__main__":
+    from parse import GifReader
+    filename = "../dataset/sample_2_animation.gif"
+    from time import time
+    
+    gif_reader = GifReader(filename)
+    gif_data = gif_reader.parse()
+    
+    
+    # time1 = time()
+    # encoder = GIF_encoder("output2.gif")
+    # encoder.encode(gif_data, c2)
+    # encoder.to_file()
+    # time2 = time()
+    # print("Time taken for c2: ", time2-time1)
+    
+    time1 = time()
+    encoder = GIF_encoder("output1.gif")
+    encoder.encode(gif_data, c1)
+    encoder.to_file()
+    time2 = time()
+    print("Time taken for c1: ", time2-time1)
+    
+
+    print("Done!")
