@@ -1,19 +1,16 @@
 
 import sys
-import PySide6
+
 from PySide6 import QtGui
-
-from PySide6.QtWidgets import QTreeView, QApplication, QHeaderView, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QTabWidget, QFileDialog, QLabel
-from PySide6.QtGui import QPixmap, QBrush, QPen
-from PySide6.QtCore import Qt, Signal, QObject
-
+from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtGui import QBrush, QPen, QPixmap
+from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel,
+                               QPushButton, QTabWidget, QVBoxLayout, QWidget)
 from qt_material import apply_stylesheet
-
-import json
-import gzip
 
 from data import GifData
 from parse import GifReader
+
 
 class FrameRef(QObject):
     changed_signal = Signal()
@@ -32,7 +29,7 @@ class DisplayTab(QWidget):
 
         self.cur_frame = frame_ref
         self.scale = (1, 1)
-        self.initUI()
+        self.init()
         self.update_canvas()
     
     def advance_frame(self, offset=1):
@@ -41,7 +38,7 @@ class DisplayTab(QWidget):
             self.cur_frame.cur_frame += offset
             self.frame_label.setText(f"Cur Frame: {self.cur_frame.cur_frame}")
     
-    def initUI(self):
+    def init(self):
         self.setGeometry(self.left, self.top, self.width, self.height)
 
         self.frame_label = QLabel("Cur Frame: 0")
@@ -111,7 +108,6 @@ class DisplayTab(QWidget):
                 global_x = x + drawn_frame.img_descriptor.left
                 global_y = y + drawn_frame.img_descriptor.top
                 pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
-                # pen.setColor(QtGui.QColor('red'))
                 painter.setPen(pen)
                 painter.drawPoint(global_x, global_y)
         painter.end()
@@ -131,23 +127,43 @@ class DisplayTab(QWidget):
         self.update_canvas()
 
 class DetailsTab(QWidget):
-    def __init__(self, gif:GifData, frame_ref:FrameRef):
+    def __init__(self, gif:GifData, frame_ref:FrameRef, file_name:str):
         super().__init__()
         self.parsed_gif = gif
         self.cur_frame = frame_ref
-        self.initUI()
-        self.updateCanvas()
+        self.file_name = file_name
+        self.init()
+        self.update_canvas()
 
-    def initUI(self):
+    def init(self):
+        self.filename_label = QLabel(f'Filename : {self.file_name}')
         self.frame_label = QLabel("Cur Frame: 0")
         img_desc = self.parsed_gif.frames[0].img_descriptor
-        self.frame_dim_label = QLabel(f"(Width:Height) : {img_desc.width, img_desc.height}")
-        # TODO : Update this to use the one in GCExt
-        self.frame_delay = QLabel("0")
-        self.gct = self.parsed_gif.gct
+        self.frame_dim_label = QLabel(f"Width:Height : {img_desc.width, img_desc.height}")
+        gce = self.parsed_gif.frames[0].graphic_control
+        self.frame_delay = QLabel(f"Delay : {gce.delay_time if gce is not None and gce.delay_time > 0 else '100(default)'}")
+        gct = self.parsed_gif.gct
+        
+        windowLayout = QHBoxLayout()
+        vboxLayout1 = QVBoxLayout()
+        vboxLayout1.setAlignment(Qt.AlignmentFlag.AlignTop)
+        vboxLayout1.addWidget(self.filename_label)
+        vboxLayout1.addWidget(self.frame_label)
+        vboxLayout1.addWidget(self.frame_dim_label)
+        vboxLayout1.addWidget(self.frame_delay)
 
-    def updateCanvas(self):
-        pass
+        vboxLayout2 = QVBoxLayout()
+
+        windowLayout.addLayout(vboxLayout1)
+        windowLayout.addLayout(vboxLayout2)
+        self.setLayout(windowLayout)
+
+    def update_canvas(self):
+        self.frame_label.setText(f'Cur Frame: {self.cur_frame.cur_frame}')
+        img_desc = self.parsed_gif.frames[self.cur_frame.cur_frame].img_descriptor
+        self.frame_dim_label.setText(f"Width:Height : {img_desc.width, img_desc.height}")
+        gce = self.parsed_gif.frames[self.cur_frame.cur_frame].graphic_control
+        self.frame_delay.setText(f"Delay : {gce.delay_time if gce is not None and gce.delay_time > 0 else '100(default)'}")
 
 
     
@@ -158,17 +174,18 @@ if __name__ == '__main__':
     def add_tabs(tabs:QTabWidget):
         tabs.clear()
         w.resize(800, 500)
-        my_file  = QFileDialog.getOpenFileName(None, "Select GIF file", "", "Images (*.gif)")
-        my_file = my_file[0]
+        file_name  = QFileDialog.getOpenFileName(None, "Select GIF file", "", "Images (*.gif)")
+        file_name = file_name[0]
         tabs.resize(800, 1000)
         # Parse image
         frame_ref = FrameRef()
-        img = GifReader(my_file).parse()
+        img = GifReader(file_name).parse()
         display = DisplayTab(img, frame_ref)
-        details = DetailsTab(img, frame_ref)
+        details = DetailsTab(img, frame_ref, file_name)
         tabs.addTab(display, "Display")
         tabs.addTab(details, "Details")
         frame_ref.changed_signal.connect(display.update_canvas)
+        frame_ref.changed_signal.connect(details.update_canvas)
 
 
     app = QApplication(sys.argv)
