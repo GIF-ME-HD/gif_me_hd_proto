@@ -1,4 +1,4 @@
-from hashlib import pbkdf2_hmac
+from hashlib import scrypt
 from numpy.random import Generator
 from randomgen import ChaCha
 from copy import deepcopy
@@ -10,7 +10,7 @@ def encrypt(gif:GifData, password, n = 100) -> GifData:
     gif = deepcopy(gif)
     # NOTE: seed the random generator with enc key
     # TODO: future work, do not make the password the key directly
-    rng = Generator(ChaCha(key=password, rounds=ROUNDS))     # NOTE: now we asusme password is a integer
+    rng = Generator(ChaCha(key=password2key(password, b""), rounds=ROUNDS))     # NOTE: now we asusme password is a integer
     
     total_frames = len(gif.frames)
     
@@ -34,11 +34,8 @@ def encrypt(gif:GifData, password, n = 100) -> GifData:
 def password2key(password, salt):
     # salt is a buffer of bytes (16 or more bytes)
     # password should be of sensisble length (<= 1024)
-    password =  b'password'
-    salt = b'bad salt'*2
-    dk = pbkdf2_hmac('sha256', password, salt, our_app_iters)
+    dk = scrypt(password.encode(), salt=salt, n=4096, r=1, p=1)
 
-    pass
 
 
 # TODO: store the salt in the gif 

@@ -287,7 +287,7 @@ class EncryptTab(QWidget):
     
     def encrypt(self):
         self.n = int(self.n_textedit.toPlainText())
-        self.pw = int(self.pw_textedit.toPlainText())
+        self.pw = self.pw_textedit.toPlainText()
         self.encrypted_gif = encrypt(self.parsed_gif, self.pw, self.n)
         self.update_canvas()
 
