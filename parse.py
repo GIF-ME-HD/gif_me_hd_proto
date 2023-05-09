@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 from PIL import GifImagePlugin
 from PIL import Image
 from io import BytesIO
@@ -297,7 +298,7 @@ class GifReader:
 
         packed_field = self.dv.read_byte()
         gif_data.gct_size = packed_field & 0b000_0111
-        gif_data.lct_sort_flag = is_bit_set(packed_field, 3)
+        gif_data.gct_sort_flag = is_bit_set(packed_field, 3)
         gif_data.color_resolution = packed_field & 0b0111_0000
         gif_data.gct_flag = is_bit_set(packed_field, 7)
 
@@ -449,7 +450,7 @@ class GIF_encoder:
 
         packed_field = 0b0000_0000
         packed_field = packed_field | gif_data.gct_size
-        packed_field = packed_field | (int(gif_data.lct_sort_flag) << 3)
+        packed_field = packed_field | (int(gif_data.gct_sort_flag) << 3)
         packed_field = packed_field | gif_data.color_resolution
         packed_field = packed_field | (int(gif_data.gct_flag) << 7)
         self.bytez += packed_field.to_bytes(1, byteorder='big')
@@ -508,7 +509,6 @@ def is_bit_set(data, bit_num):
 
 
 
-
 # TODO: iniitialize the code table as a hash table which is dependent on the code size given
 # NOTE: assume that we already know what code_size to use
 def init_gif_lzw_code_table(color_table, code_size=12):
@@ -541,7 +541,7 @@ def init_gif_lzw_code_table(color_table, code_size=12):
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:
-        filename = "dataset/sample_1.gif"
+        filename = "dataset/sample-1.gif"
         # filename = "dataset/esqueleto.gif"
     else:
         filename = sys.argv[1]
@@ -550,11 +550,15 @@ if __name__ == '__main__':
     
     # testing by overlapping the LCT
     # [RGB(255, 255, 255), RGB(255, 0, 0), RGB(0, 0, 255), RGB(0, 0, 0)]
-    gif_data.gct = True
-    gif_data.gct = [RGBTriplet(255, 255, 255), RGBTriplet(0,0,255), RGBTriplet(255,0,0), RGBTriplet(0,0,0)]
-    gif_data.frames[0].img_descriptor.lct_flag = True
-    gif_data.frames[0].img_descriptor.lct_sort_flag = True
-    gif_data.frames[0].img_descriptor.lct = [RGBTriplet(255, 255, 255), RGBTriplet(0,0,0), RGBTriplet(100,100,255)]
+    # gif_data.gct = True
+    # gif_data.gct = [RGBTriplet(255, 255, 255), RGBTriplet(0,0,255), RGBTriplet(255,0,0), RGBTriplet(0,0,0)]
+    
+    # gif_data.gct_sort_flag = True
+    # imgdesc = gif_data.frames[0].img_descriptor
+    # imgdesc.lct_flag = True
+    # imgdesc.lct_sort_flag = True
+    # imgdesc.lct = copy.copy(gif_data.gct)
+    # imgdesc.lct.reverse()
     
     encoder = GIF_encoder("output.gif")
     encoder.encode_encrypt(gif_data)
