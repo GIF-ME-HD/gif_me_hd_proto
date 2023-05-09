@@ -122,15 +122,16 @@ def compress(index_stream, lzw_min_code_size):
             if lst_to_str(index_buffer+k) in code_table:
                 index_buffer = index_buffer + k
             else:
+                code_table[lst_to_str(index_buffer + k)] = next_smallest_code
+                code_stream.append((code_table[lst_to_str(index_buffer)], cur_code_size))
                 if next_smallest_code == 4096:
                     # Reset
                     code_table = create_code_table(lzw_min_code_size)
                     code_stream.append((code_table[CLEAR_CODE], cur_code_size))
                     index_buffer = k
                     next_smallest_code = (2 ** lzw_min_code_size)+2
+                    continue
 
-                code_table[lst_to_str(index_buffer + k)] = next_smallest_code
-                code_stream.append((code_table[lst_to_str(index_buffer)], cur_code_size))
                 if next_smallest_code == 2 ** cur_code_size:
                     cur_code_size += 1
                 next_smallest_code += 1
@@ -156,10 +157,10 @@ def compress(index_stream, lzw_min_code_size):
 
     bytestream = bitstream[0].to_bytes(byteorder="little", length=bitstream[1] // 8)
 
-    while len(bytestream) > 0xFF:
-        ret += (0xFF).to_bytes(1, byteorder="little")
-        ret += bytestream[:0xFF]
-        bytestream = bytestream[0xFF:]
+    while len(bytestream) > 0xFE:
+        ret += (0xFE).to_bytes(1, byteorder="little")
+        ret += bytestream[:0xFE]
+        bytestream = bytestream[0xFE:]
     if len(bytestream) != 0:
         ret += (len(bytestream)).to_bytes(1, byteorder="little")
         ret += bytestream[:len(bytestream)]

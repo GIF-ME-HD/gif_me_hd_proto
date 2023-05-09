@@ -598,7 +598,7 @@ def lzw_compression(rgb_triplet_image_data, color_table, code_size=2, string_for
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:
-        filename = "dataset/sample_1.gif"
+        filename = "dataset/Dancing.gif"
     else:
         filename = sys.argv[1]
     reader = GifReader(filename)
