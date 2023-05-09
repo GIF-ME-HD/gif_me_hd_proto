@@ -228,8 +228,8 @@ def display_color_table(lst, name=''):
 
 class ImageDescriptor:
     def __init__(self):
-        self.img_left = None
-        self.img_top = None
+        self.left = None
+        self.top = None
         self.width = None
         self.height = None
         
@@ -241,6 +241,18 @@ class ImageDescriptor:
         
         self.lct = None
 
+    def to_bytez(self):
+        ret = b"\x2c"
+        ret += struct.pack("<H", self.left)
+        ret += struct.pack("<H", self.top)
+        ret += struct.pack("<H", self.width)
+        ret += struct.pack("<H", self.height)
+        packed_field = self.lct_size
+        packed_field |= int(self.sort_flag) << 5
+        packed_field |= int(self.interlace_flag) << 6
+        packed_field |= int(self.lct_flag) << 7
+        ret += struct.pack("<b", packed_field)
+        return ret
     
     @staticmethod
     def is_image_descriptor(bytez, offset):
@@ -448,7 +460,7 @@ class GIF_encoder:
 
             # TODO: image descriptor
             img_descriptor = gifframe.img_descriptor
-            self.bytez += gifframe.img_descriptor
+            self.bytez += gifframe.img_descriptor.to_bytez()
 
             # TODO: encoding & encryption of the ImageData part of the GifData
             from lzw_gif import compress
