@@ -82,6 +82,8 @@ class Extension:
             raise Exception("Not a valid GIF Extension!")
         self.size = len(bytez)
 
+    def to_bytes(self):
+        return self.bytez
     def validate_identifier(self, identifier, name):
         IDENTIFIER_INDEX = 1
         if self.bytez[IDENTIFIER_INDEX] != identifier:
@@ -197,6 +199,9 @@ class RGBTriplet:
         self.g = g
         self.b = b
 
+    def to_byte_string(self):
+        return struct.pack("BBB", self.r, self.g, self.b)
+
     def __str__(self):
         return f"RGB({self.r}, {self.g}, {self.b})"
 
@@ -223,8 +228,8 @@ def display_color_table(lst, name=''):
 
 class ImageDescriptor:
     def __init__(self):
-        self.img_left = None
-        self.img_top = None
+        self.left = None
+        self.top = None
         self.width = None
         self.height = None
         
@@ -235,6 +240,19 @@ class ImageDescriptor:
         self.lct_size = None
         
         self.lct = None
+
+    def to_bytez(self):
+        ret = b"\x2c"
+        ret += struct.pack("<H", self.left)
+        ret += struct.pack("<H", self.top)
+        ret += struct.pack("<H", self.width)
+        ret += struct.pack("<H", self.height)
+        packed_field = self.lct_size
+        packed_field |= int(self.sort_flag) << 5
+        packed_field |= int(self.interlace_flag) << 6
+        packed_field |= int(self.lct_flag) << 7
+        ret += struct.pack("<b", packed_field)
+        return ret
     
     @staticmethod
     def is_image_descriptor(bytez, offset):
@@ -365,9 +383,12 @@ class GifReader:
     
                 print(f"ImageData size: {size}")
 
+        # NOTE: since we do not know how many frames there are, we have added an extra frame
+        frame_ctr -= 1
+        gif_data.frames = gif_data.frames[:-1]
         
         # TODO: add ImageData and ImgDescriptor to GifFrames
-        for i in range(frame_ctr):
+        for i in range(frame_ctr+1):
             gif_data.frames[i].img_descriptor = image_descriptors[i]
             gif_data.frames[i].frame_img_data = imagedatas[i]
 
@@ -376,29 +397,79 @@ class GifReader:
 
 class GIF_encoder:
     def __init__(self, filename):
-        self.filename = filename
-        self.bytes = None   # 
-        
+        self.filename = filename  # must include the .gif file name extension
+        self.bytes = None  # NOTE: this is in big-endian
+
     def add_bytes(self, bytez, places):
         # shift left for self.bytez by places
         self.bytez = self.bytez << places
         # add the bytez to the self.bytez
         self.bytez = self.bytez | bytez
-        
-    # TODO: the output is a gif file that is built from a GIFData object
-    def encode(self, gif_data):
-        # the header part
-        # NOTE: use shifting to add bytes to bytes to the 
-        
-        
-        
-        # 
-        
-        pass        
 
-    
-    
-    
+    def to_file(self):
+        assert (self.bytez is not None)
+        with open(self.filename, "wb") as f:
+            f.write(self.bytez)
+
+    # TODO: the output is a gif file that is built from a GIFData object
+    def encode_encrypt(self, gif_data, encryption_threshold=0):
+        # NOTE: use shifting to add bytes to bytes to the
+
+        # the header block (signature + version)
+        self.bytez = DEFAULT_HEADER
+
+        # packed_field = self.dv.read_byte()
+
+        """
+        NOTE: logical screen descriptor
+
+        # packed_field = self.dv.read_byte()
+        # gif_data.gct_size = packed_field & 0b000_0111
+        # gif_data.sort_flag = is_bit_set(packed_field, 3)
+        # gif_data.color_resolution = packed_field & 0b0111_0000
+        # gif_data.gct_flag = is_bit_set(packed_field, 7)
+
+        # gif_data.bf_color_index = self.dv.read_byte()
+        # gif_data.pixel_aspect_ratio = self.dv.read_byte()
+        """
+        # canvas width and height
+        self.bytez += gif_data.width.to_bytes(2, byteorder='little')
+        self.bytez += gif_data.height.to_bytes(2, byteorder='little')
+
+        packed_field = 0b0000_0000
+        packed_field = packed_field | gif_data.gct_size
+        packed_field = packed_field | (int(gif_data.sort_flag) << 3)
+        packed_field = packed_field | gif_data.color_resolution
+        packed_field = packed_field | (int(gif_data.gct_flag) << 7)
+        self.bytez += packed_field.to_bytes(1, byteorder='big')
+
+        self.bytez += gif_data.bf_color_index.to_bytes(1, byteorder='big')
+        self.bytez += gif_data.pixel_aspect_ratio.to_bytes(1, byteorder='big')
+
+        # NOTE: global color table
+        if gif_data.gct_flag:
+            for i in range(2 ** (gif_data.gct_size + 1)):  # the number of RGB triplets is 2^(N+1)
+                rgb = gif_data.gct[i]
+                self.bytez += rgb.to_byte_string()
+
+        # TODO: handle encoding each GifFrame back into bytes
+        for gifframe in gif_data.frames:
+            # TODO: put the raw bytes for the extensions back extensions
+            for ext in gifframe.extensions:
+                self.bytez += ext.to_bytes()
+
+            # TODO: image descriptor
+            img_descriptor = gifframe.img_descriptor
+            self.bytez += gifframe.img_descriptor.to_bytez()
+
+            # TODO: encoding & encryption of the ImageData part of the GifData
+            from lzw_gif import compress
+            import math
+            self.bytez += compress(gifframe.frame_img_data.indices, math.ceil(math.log( 2 ** (gif_data.gct_size+1),2)))
+
+        # TODO: add the trailer byte
+        self.bytez += b'\x3B'
+
 
 def reshape_2d(lst, num):
     ret = [None] * num
@@ -527,8 +598,12 @@ def lzw_compression(rgb_triplet_image_data, color_table, code_size=2, string_for
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:
-        filename = "dataset/sample_2_animation.gif"
+        filename = "dataset/sample_1.gif"
     else:
         filename = sys.argv[1]
     reader = GifReader(filename)
-    reader.parse()
+    gif_data = reader.parse()
+
+    encoder = GIF_encoder("output.gif")
+    encoder.encode_encrypt(gif_data)
+    encoder.to_file()
