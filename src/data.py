@@ -55,7 +55,7 @@ class ImageDescriptor:
         ret += struct.pack("<H", self.width)
         ret += struct.pack("<H", self.height)
         packed_field = self.lct_size
-        packed_field |= int(self.lct_sort_flag) << 5
+        packed_field |= int(self.sort_flag) << 5
         packed_field |= int(self.interlace_flag) << 6
         packed_field |= int(self.lct_flag) << 7
         ret += struct.pack("<B", packed_field)
