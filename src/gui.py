@@ -2,7 +2,7 @@ import sys
 
 from PySide6 import QtGui
 from PySide6.QtCore import QObject, Qt, Signal, QRect
-from PySide6.QtGui import QBrush, QPen, QPixmap, QPainter
+from PySide6.QtGui import QBrush, QPen, QPixmap, QPainter, QImage
 from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel,
                                QPushButton, QTabWidget, QVBoxLayout, QGridLayout, QWidget, QTextEdit)
 from qt_material import apply_stylesheet
@@ -13,7 +13,7 @@ from data import GifData
 from parse import GifReader
 from encrypt import encrypt
 from encode import GifEncoder
-from lzw_gif import compress
+from lzw_gif3 import compress
 
 # TODO: Separate out the different tabs into different places and each component to their own function
 class FrameRef(QObject):
@@ -96,22 +96,19 @@ class DisplayTab(QWidget):
         canvas = QPixmap(self.parsed_gif.width, self.parsed_gif.height)
         canvas.fill(Qt.cyan)
         painter = QtGui.QPainter(canvas)
-        pen = QPen()
-        pen.setWidth(1)
         drawn_frame = self.parsed_gif.frames[self.cur_frame.cur_frame]
         gct = self.parsed_gif.gct
         bound_ct = gct
         if drawn_frame.img_descriptor.lct_flag:
             bound_ct = drawn_frame.img_descriptor.lct
-        for y in range(drawn_frame.img_descriptor.height):
-            for x in range(drawn_frame.img_descriptor.width):
-                index = drawn_frame.frame_img_data[y * drawn_frame.img_descriptor.width + x]
-                rgb = bound_ct[index]
-                global_x = x + drawn_frame.img_descriptor.left
-                global_y = y + drawn_frame.img_descriptor.top
-                pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
-                painter.setPen(pen)
-                painter.drawPoint(global_x, global_y)
+
+        image_bytes = b''.join([bound_ct[_].to_byte_string() for _ in drawn_frame.frame_img_data])
+        image = QImage(image_bytes,
+                       drawn_frame.img_descriptor.width,
+                       drawn_frame.img_descriptor.height,
+                       drawn_frame.img_descriptor.width * 3,
+                       QImage.Format.Format_RGB888)
+        painter.drawImage(drawn_frame.img_descriptor.left, drawn_frame.img_descriptor.top, image)
         painter.end()
         canvas = canvas.scaled(self.parsed_gif.width*self.scale[0], 
                                self.parsed_gif.width*self.scale[1])
@@ -147,6 +144,7 @@ class DetailsTab(QWidget):
         gce = self.parsed_gif.frames[0].graphic_control
         self.frame_delay = QLabel(f"Delay : {gce.delay_time if gce is not None and gce.delay_time > 0 else '100(default)'}")
         self.transparency_index = QLabel(f"Transparent Index : {gce.transparent_color_index if gce is not None and gce.transparent_color_flag else 'None'}")
+        self.num_frames = QLabel(f"Number of Frames: {len(self.parsed_gif.frames)}")
 
         gct = self.parsed_gif.gct
         gct_size = 2 ** (self.parsed_gif.gct_size+1)
@@ -208,6 +206,7 @@ class DetailsTab(QWidget):
         vboxLayout1.addWidget(self.frame_dim_label)
         vboxLayout1.addWidget(self.frame_delay)
         vboxLayout1.addWidget(self.transparency_index)
+        vboxLayout1.addWidget(self.num_frames)
 
         vboxLayout2 = QVBoxLayout()
         vboxLayout2.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -308,22 +307,19 @@ class EncryptTab(QWidget):
         canvas = QPixmap(self.encrypted_gif.width, self.encrypted_gif.height)
         canvas.fill(Qt.cyan)
         painter = QtGui.QPainter(canvas)
-        pen = QPen()
-        pen.setWidth(1)
         drawn_frame = self.encrypted_gif.frames[self.cur_frame]
         gct = self.encrypted_gif.gct
-        for y in range(drawn_frame.img_descriptor.height):
-            for x in range(drawn_frame.img_descriptor.width):
-                bound_ct = gct
-                if drawn_frame.img_descriptor.lct_flag:
-                    bound_ct = drawn_frame.img_descriptor.lct
-                index = drawn_frame.frame_img_data[y * drawn_frame.img_descriptor.width + x]
-                rgb = bound_ct[index]
-                global_x = x + drawn_frame.img_descriptor.left
-                global_y = y + drawn_frame.img_descriptor.top
-                pen.setColor(QtGui.QColor(rgb.r, rgb.g, rgb.b))
-                painter.setPen(pen)
-                painter.drawPoint(global_x, global_y)
+        bound_ct = gct
+        if drawn_frame.img_descriptor.lct_flag:
+            bound_ct = drawn_frame.img_descriptor.lct
+
+        image_bytes = b''.join([bound_ct[_].to_byte_string() for _ in drawn_frame.frame_img_data])
+        image = QImage(image_bytes,
+                       drawn_frame.img_descriptor.width,
+                       drawn_frame.img_descriptor.height,
+                       drawn_frame.img_descriptor.width * 3,
+                       QImage.Format.Format_RGB888)
+        painter.drawImage(drawn_frame.img_descriptor.left, drawn_frame.img_descriptor.top, image)
         painter.end()
         canvas = canvas.scaled(self.encrypted_gif.width*self.scale[0], 
                                self.encrypted_gif.width*self.scale[1])
