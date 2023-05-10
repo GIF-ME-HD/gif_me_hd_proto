@@ -112,9 +112,7 @@ def create_code_table_inverse(lzw_min_code_size):
 class CodeTableNode:
     def __init__(self, val):
         self.value = val
-        self.children = []
-        for _ in range(256):
-            self.children.append(None)
+        self.children = [None] * 256
         self.is_clear_code = False
         self.is_eoi_code = False
 
