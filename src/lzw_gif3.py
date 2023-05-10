@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 
 CLEAR_CODE = "CC"
 EOI_CODE = "EOI"
@@ -118,8 +119,12 @@ class CodeTableNode:
         self.is_eoi_code = False
 
 
+ct_rets = []
+for _ in range(100):
+    ct_rets.append(None)
 def create_code_table(lzw_min_code_size):
-    ret = {}
+    if ct_rets[lzw_min_code_size] is not None:
+        return copy.deepcopy(ct_rets[lzw_min_code_size])
 
     root = CodeTableNode('root')
     for i in range(2 ** lzw_min_code_size):
@@ -128,7 +133,10 @@ def create_code_table(lzw_min_code_size):
     root.clear_code = i+1
     root.eoi_code = i+2
 
+    ct_rets[lzw_min_code_size] = copy.deepcopy(root)
+
     return root
+
 
 def compress(index_stream, lzw_min_code_size):
     ret = b""
@@ -144,7 +152,6 @@ def compress(index_stream, lzw_min_code_size):
         code_stream.append((code_table_root.clear_code, cur_code_size))
 
         first_val = index_stream[0]
-        index_buffer = [(first_val, cur_code_size)]
 
         next_smallest_code = (2 ** lzw_min_code_size) + 2
         cur_table_node = code_table_root.children[first_val]
@@ -153,7 +160,6 @@ def compress(index_stream, lzw_min_code_size):
             k = (index_stream[next_ptr], cur_code_size)
 
             if cur_table_node.children[k[0]] is not None:
-                index_buffer.append(k)
                 cur_table_node = cur_table_node.children[k[0]]
             else:
                 cur_table_node.children[k[0]] = CodeTableNode(next_smallest_code)
@@ -163,7 +169,6 @@ def compress(index_stream, lzw_min_code_size):
                     # Reset
                     code_table_root = create_code_table(lzw_min_code_size)
                     code_stream.append((code_table_root.clear_code, cur_code_size))
-                    index_buffer = [k]
                     cur_table_node = code_table_root.children[k[0]]
                     next_smallest_code = (2 ** lzw_min_code_size) + 2
                     cur_code_size = lzw_min_code_size + 1
@@ -172,7 +177,6 @@ def compress(index_stream, lzw_min_code_size):
                 if next_smallest_code == 2 ** cur_code_size:
                     cur_code_size += 1
                 next_smallest_code += 1
-                index_buffer = [k]
                 cur_table_node = code_table_root.children[k[0]]
         code_stream.append((cur_table_node.value, cur_code_size))
         # Send EOI
