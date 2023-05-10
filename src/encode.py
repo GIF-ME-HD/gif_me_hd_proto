@@ -2,6 +2,7 @@ import timeit
 from data import GifData
 from lzw_gif import compress as c1
 from lzw_gif2 import compress as c2
+from lzw_gif3 import compress as c3
 import math
 
 DEFAULT_HEADER = b"GIF89a"
@@ -48,7 +49,8 @@ class GifEncoder:
         for ext in gif_data.extensions:
             self.bytez += ext.to_bytes()
 
-        for gifframe in gif_data.frames:
+        for i, gifframe in enumerate(gif_data.frames):
+            print(f"Encoding Frame {i}")
             self.bytez += gifframe.graphic_control.to_bytes()
             self.bytez += gifframe.img_descriptor.to_bytez()
             self.bytez += compressfunc(gifframe.frame_img_data, math.ceil(math.log( 2 ** (gif_data.gct_size+1),2)))
@@ -58,26 +60,31 @@ class GifEncoder:
 
 if __name__ == "__main__":
     from parse import GifReader
-    filename = "../dataset/sample_2_animation.gif"
+    filename = "../dataset/DancingPeaks.gif"
     from time import time
     
     gif_reader = GifReader(filename)
     gif_data = gif_reader.parse()
-    
-    
-    # time1 = time()
-    # encoder = GIF_encoder("output2.gif")
-    # encoder.encode(gif_data, c2)
-    # encoder.to_file()
-    # time2 = time()
-    # print("Time taken for c2: ", time2-time1)
-    
+
     time1 = time()
-    encoder = GIF_encoder("output1.gif")
+    encoder = GifEncoder("output1.gif")
     encoder.encode(gif_data, c1)
     encoder.to_file()
     time2 = time()
     print("Time taken for c1: ", time2-time1)
     
+    time1 = time()
+    encoder = GifEncoder("output2.gif")
+    encoder.encode(gif_data, c2)
+    encoder.to_file()
+    time2 = time()
+    print("Time taken for c2: ", time2-time1)
+
+    time1 = time()
+    encoder = GifEncoder("output3.gif")
+    encoder.encode(gif_data, c3)
+    encoder.to_file()
+    time2 = time()
+    print("Time taken for c3: ", time2-time1)
 
     print("Done!")
