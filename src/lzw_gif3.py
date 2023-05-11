@@ -26,7 +26,6 @@ def create_inverse_code_table(lzw_min_code_size):
     ret[i + 2] = EoiCodeInv()
     return ret
 
-
 def decompress(bytestream):
     index_stream = []
     code_stream = b""
@@ -40,27 +39,22 @@ def decompress(bytestream):
         cur_idx = cur_idx + 1 + subblock_size
         subblock_size = bytestream[cur_idx]
 
-    get_rightmost_n_bits = lambda x, n: x[0] & (1 << n) - 1
     cur_code_size = lzw_min_code_size + 1
 
+    from bitreader import BitReader
     # tuple form
-    code_stream = (int.from_bytes(code_stream, byteorder='little'), len(code_stream) * 8)
+    code_stream = BitReader(code_stream)
 
-    code = get_rightmost_n_bits(code_stream, cur_code_size)
-    code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
+    code = code_stream.read_n_bits(cur_code_size)
     assert code == 2 ** lzw_min_code_size
 
-    code = get_rightmost_n_bits(code_stream, cur_code_size)
-    code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
-
+    code = code_stream.read_n_bits(cur_code_size)
     index_stream += code_table[code]
 
     prev_code = code
     codes = [code]
     while True:
-        code = get_rightmost_n_bits(code_stream, cur_code_size)  # get the current code from byte stream
-        code_stream = (
-        code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)  # exhaust the current code from byte stream
+        code = code_stream.read_n_bits(cur_code_size)
         codes.append(code)
         if code in code_table:
             # encountered clear code
@@ -69,8 +63,7 @@ def decompress(bytestream):
                 next_smallest_code = (2 ** lzw_min_code_size) + 2
                 cur_code_size = lzw_min_code_size + 1
 
-                code = get_rightmost_n_bits(code_stream, cur_code_size)
-                code_stream = (code_stream[0] >> cur_code_size, code_stream[1] - cur_code_size)
+                code = code_stream.read_n_bits(cur_code_size)
 
                 index_stream += code_table[code]
                 prev_code = code
