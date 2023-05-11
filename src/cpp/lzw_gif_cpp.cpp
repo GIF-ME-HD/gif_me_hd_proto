@@ -59,32 +59,32 @@ gen_code_stream(const std::vector<int> &index_stream, int lzw_min_code_size,
 
   int next_smallest_code = (1 << lzw_min_code_size) + 2;
   CodeTableNode *cur_table_node = code_table_root->children[first_val];
-  std::cout << "A"
-            << "\n";
+  // std::cout << "A"
+  // << "\n";
   CodeTableNode *abc = code_table_root->children[3];
-  std::cout << "abc: " << abc << "\n";
+  // std::cout << "abc: " << abc << "\n";
 
   for (size_t next_ptr = 1; next_ptr < index_stream.size(); next_ptr++) {
-    std::cout << next_ptr << "\n";
-    std::cout << "GETTING VAL"
-              << "\n";
+    // std::cout << next_ptr << "\n";
+    // std::cout << "GETTING VAL"
+    // << "\n";
 
     int k = index_stream[next_ptr];
-    std::cout << "RETRIEVED VAL " << k << "\n";
+    // std::cout << "RETRIEVED VAL " << k << "\n";
 
-    std::cout << "Out of " << cur_table_node << "\n";
+    // std::cout << "Out of " << cur_table_node << "\n";
 
     if (cur_table_node->children[k] != NULL) {
-      std::cout << "OO " << cur_table_node->children[k] << "\n";
+      // std::cout << "OO " << cur_table_node->children[k] << "\n";
       cur_table_node = cur_table_node->children[k];
-      std::cout << "PP"
-                << "\n";
+      // std::cout << "PP"
+      // << "\n";
     } else {
-      std::cout << "XX"
-                << "\n";
+      // std::cout << "XX"
+      // << "\n";
       cur_table_node->children[k] = new CodeTableNode(next_smallest_code);
-      std::cout << "YY"
-                << "\n";
+      // std::cout << "YY"
+      // << "\n";
       code_stream.push_back({cur_table_node->value, cur_code_size});
 
       if (next_smallest_code == 4096) {
@@ -110,6 +110,7 @@ gen_code_stream(const std::vector<int> &index_stream, int lzw_min_code_size,
 
   // Send EOI
   code_stream.push_back({code_table_root->eoi_code, cur_code_size});
+  delete code_table_root;
 
   return code_stream;
 }
@@ -140,7 +141,7 @@ std::vector<int> compress_lzw_gif(const std::vector<int> &index_stream,
   std::pair<int, int> bitstream = std::make_pair(0, 0);
   BitWriter bw;
   for (auto &code : code_stream) {
-    std::cout << "YY " << code.first << " " << code.second << "\n";
+    // std::cout << "YY " << code.first << " " << code.second << "\n";
     bw.add_n_bits(code.first, code.second);
   }
 
@@ -169,7 +170,7 @@ int add(int i, int j) { return i + j; }
 py::bytes compress(const std::vector<int> &indices, int lzw_min_code_size) {
   std::vector<char> ret;
   for (auto item : indices) {
-    std::cout << item << "\n";
+    // std::cout << item << "\n";
   }
   std::vector<int> temp = compress_lzw_gif(indices, lzw_min_code_size);
   std::string result(temp.begin(), temp.end());
