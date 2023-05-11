@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "bitreader.h"
+#include "bitwriter.h"
 namespace py = pybind11;
 
 struct CodeTableNode;
@@ -137,22 +138,14 @@ std::vector<int> compress_lzw_gif(const std::vector<int> &index_stream,
   // Convert code stream to bit stream
   //
   std::pair<int, int> bitstream = std::make_pair(0, 0);
+  BitWriter bw;
   for (auto &code : code_stream) {
-    std::cout << "YY " << code.first << "\n";
-    bitstream = append_bits(code, bitstream);
+    std::cout << "YY " << code.first << " " << code.second << "\n";
+    bw.add_n_bits(code.first, code.second);
   }
-
-  // Padding
-  int pad_num = 8 - (bitstream.second % 8);
-  bitstream =
-      std::make_pair((bitstream.first << pad_num) | ((1 << pad_num) - 1),
-                     bitstream.second + pad_num);
 
   // Convert bit stream to byte stream
-  std::vector<uint8_t> bytestream;
-  for (int i = 0; i < bitstream.second / 8; i++) {
-    bytestream.push_back((bitstream.first >> (i * 8)) & 0xFF);
-  }
+  std::vector<uint8_t> bytestream = bw.stream;
 
   // Write byte stream to output vector, with length prefixes
   while (bytestream.size() > 0xFE) {

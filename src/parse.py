@@ -2,7 +2,7 @@ from datareader import DataReader
 from data import GifData, GifFrame, ImageDescriptor
 from extensions import Extension, GraphicsControlExt
 from utils import is_bit_set, get_sub_block_size
-from lzw_gif import decompress
+from lzw_gif3 import decompress
 
 DEFAULT_HEADER = b"GIF89a"
 GIF_TRAILER = 0x3B
@@ -23,7 +23,6 @@ class GifReader:
     @staticmethod
     def get_ct_size(n):
         return 2 ** (n+1)
-
     def parse(self) -> GifData:
         """
         Parses the GIF file based loaded.
@@ -116,7 +115,7 @@ class GifReader:
 
                 minimum_code_size = self.data_reader.read_byte()
                 size = get_sub_block_size(self.data_reader.bytez, self.data_reader.offset)
-                frame.frame_img_data = decompress(minimum_code_size.to_bytes(1, byteorder="big") + self.data_reader.bytez[self.data_reader.offset:self.data_reader.offset+size])
+                frame.frame_img_data = decompress(self.data_reader.memview[self.data_reader.offset-1:self.data_reader.offset+size])
                 self.data_reader.advance(size)
             
             else:
