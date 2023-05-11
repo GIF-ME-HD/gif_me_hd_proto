@@ -54,6 +54,9 @@ gen_code_stream(const std::vector<int> &index_stream, int lzw_min_code_size,
 
   // Send Clear Code
   code_stream.push_back({code_table_root->clear_code, cur_code_size});
+  // std::cout << "CP0 - (" << code_table_root->clear_code << ", " <<
+  // cur_code_size
+  //           << ")\n";
 
   int first_val = index_stream[0];
 
@@ -85,12 +88,17 @@ gen_code_stream(const std::vector<int> &index_stream, int lzw_min_code_size,
       cur_table_node->children[k] = new CodeTableNode(next_smallest_code);
       // std::cout << "YY"
       // << "\n";
+      // std::cout << "CP1 - (" << cur_table_node->value << ", " <<
+      // cur_code_size
+      //           << ")\n";
       code_stream.push_back({cur_table_node->value, cur_code_size});
 
       if (next_smallest_code == 4096) {
         // Reset
         delete code_table_root;
         code_table_root = CreateCodeTable(lzw_min_code_size);
+        // std::cout << "CP2 - (" << code_table_root->clear_code << ", "
+        //           << cur_code_size << ")\n";
         code_stream.push_back({code_table_root->clear_code, cur_code_size});
         cur_table_node = code_table_root->children[k];
         next_smallest_code = (1 << lzw_min_code_size) + 2;
@@ -106,9 +114,14 @@ gen_code_stream(const std::vector<int> &index_stream, int lzw_min_code_size,
     }
   }
 
+  // std::cout << "CP3 - (" << cur_table_node->value << ", " << cur_code_size
+  //           << ")\n";
   code_stream.push_back({cur_table_node->value, cur_code_size});
 
   // Send EOI
+  // std::cout << "CP4 - (" << code_table_root->eoi_code << ", " <<
+  // cur_code_size
+  //           << ")\n";
   code_stream.push_back({code_table_root->eoi_code, cur_code_size});
   delete code_table_root;
 
@@ -144,6 +157,7 @@ std::vector<int> compress_lzw_gif(const std::vector<int> &index_stream,
     // std::cout << "YY " << code.first << " " << code.second << "\n";
     bw.add_n_bits(code.first, code.second);
   }
+  bw.add_n_bits(0, 8 - bw.bit_offset);
 
   // Convert bit stream to byte stream
   std::vector<uint8_t> bytestream = bw.stream;
@@ -154,7 +168,7 @@ std::vector<int> compress_lzw_gif(const std::vector<int> &index_stream,
     ret.insert(ret.end(), bytestream.begin(), bytestream.begin() + 0xFE);
     bytestream.erase(bytestream.begin(), bytestream.begin() + 0xFE);
   }
-  if (bytestream.size() > 0) {
+  if (bytestream.size() != 0) {
     ret.push_back(bytestream.size());
     ret.insert(ret.end(), bytestream.begin(), bytestream.end());
   }
