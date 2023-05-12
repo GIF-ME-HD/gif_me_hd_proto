@@ -66,14 +66,14 @@ if __name__ == "__main__":
     
     
     # time1 = time()
-    # encoder = GIF_encoder("output2.gif")
+    # encoder = GifEncoder("output2.gif")
     # encoder.encode(gif_data, c2)
     # encoder.to_file()
     # time2 = time()
     # print("Time taken for c2: ", time2-time1)
     
     time1 = time()
-    encoder = GIF_encoder("output1.gif")
+    encoder = GifEncoder("output1.gif")
     encoder.encode(gif_data, c1)
     encoder.to_file()
     time2 = time()

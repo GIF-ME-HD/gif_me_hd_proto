@@ -65,7 +65,7 @@ def apply_color_pertubation(gif:GifData, frame:GifFrame, x, y, color_perb):
 
 if __name__ == "__main__":
     from parse import GifReader
-    from encode import GIF_encoder
+    from encode import GifEncoder
     # filename = "../dataset/output1.gif"
     # filename = "../dataset/sample.gif"
     filename = "./output.gif"
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     print("encrypt done!")
     
     # saving
-    encoder = GIF_encoder("decrypted.gif")
+    encoder = GifEncoder("decrypted.gif")
     print("About to encode!")
     encoder.encode(encrypted, compress)
     

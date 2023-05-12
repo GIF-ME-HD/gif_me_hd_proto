@@ -406,7 +406,7 @@ class GifReader:
         return gif_data
 
 
-class GIF_encoder:
+class GifEncoder:
     def __init__(self, filename):
         self.filename = filename  # must include the .gif file name extension
         self.bytes = None  # NOTE: this is in big-endian
@@ -512,6 +512,6 @@ if __name__ == '__main__':
     # imgdesc.lct = copy.copy(gif_data.gct)
     # imgdesc.lct.reverse()
     
-    encoder = GIF_encoder("output.gif")
+    encoder = GifEncoder("output.gif")
     encoder.encode_encrypt(gif_data)
     encoder.to_file()
