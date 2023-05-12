@@ -13,7 +13,7 @@ from data import GifData
 from parse import GifReader
 from encrypt import encrypt
 from encode import GifEncoder
-from lzw_gif3 import compress
+from cpp.lzw_gif_cpp import compress
 
 # TODO: Separate out the different tabs into different places and each component to their own function
 class FrameRef(QObject):
@@ -259,10 +259,11 @@ class EncryptTab(QWidget):
     def __init__(self, gif:GifData):
         super().__init__()
         self.parsed_gif = gif
-        self.encrypted_gif = gif
+        from copy import deepcopy
+        self.encrypted_gif = deepcopy(gif)
         self.cur_frame = 0
         self.n = 0
-        self.pw = None
+        self.pw = ""
         self.scale = (1,1)
         self.initUI()
     
@@ -285,9 +286,10 @@ class EncryptTab(QWidget):
         self.update_canvas()  
     
     def encrypt(self):
+        self.encrypted_gif = encrypt(self.encrypted_gif, self.pw, self.n)
         self.n = int(self.n_textedit.toPlainText())
         self.pw = self.pw_textedit.toPlainText()
-        self.encrypted_gif = encrypt(self.parsed_gif, self.pw, self.n)
+        self.encrypted_gif = encrypt(self.encrypted_gif, self.pw, self.n)
         self.update_canvas()
 
     def save(self):
