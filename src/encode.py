@@ -51,7 +51,7 @@ class GifEncoder:
             self.bytez += ext.to_bytes()
 
         for i, gifframe in enumerate(gif_data.frames):
-            print(f"Encoding Frame {i}")
+            # print(f"Encoding Frame {i}")
             self.bytez += gifframe.graphic_control.to_bytes()
             self.bytez += gifframe.img_descriptor.to_bytez()
             self.bytez += compressfunc(gifframe.frame_img_data, math.ceil(math.log( 2 ** (gif_data.gct_size+1),2)))
@@ -82,14 +82,14 @@ if __name__ == "__main__":
     # print("Time taken for c2: ", time2-time1)
 
     time1 = time()
-    encoder = GifEncoder("output3.gif")
+    encoder = GifEncoder("c3_output3.gif")
     encoder.encode(gif_data, c3)
     encoder.to_file()
     time2 = time()
     print("Time taken for c3: ", time2-time1)
 
     time1 = time()
-    encoder = GifEncoder("output3.gif")
+    encoder = GifEncoder("cpp_output3.gif")
     encoder.encode(gif_data, compress_cpp)
     encoder.to_file()
     time2 = time()

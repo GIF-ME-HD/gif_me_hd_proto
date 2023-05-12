@@ -33,6 +33,9 @@ public:
         stream.push_back(temp);
         len -= 8;
       }
+      if (len == 0) {
+        stream.push_back(0);
+      }
     }
   }
   BitWriter() : bit_offset(0) { stream.push_back(0); }
