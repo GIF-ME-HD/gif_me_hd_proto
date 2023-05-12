@@ -5,20 +5,20 @@ from copy import deepcopy
 from data import GifData, GifFrame
 
 ROUNDS = 12
-
 def encrypt(gif:GifData, password, n = 100) -> GifData:
-    gif = deepcopy(gif)
+    # gif = deepcopy(gif)
     # NOTE: seed the random generator with enc key
     # TODO: future work, do not make the password the key directly
     rng = Generator(ChaCha(key=password2key(password, b""), rounds=ROUNDS))     # NOTE: now we asusme password is a integer
     
     total_frames = len(gif.frames)
 
-    for _ in range(rng.integers(0, len(gif.gct) // 2)):
-        idx = rng.integers(0, len(gif.gct))
-        gif.gct[idx].r ^= rng.integers(0, 256)
-        gif.gct[idx].g ^= rng.integers(0, 256)
-        gif.gct[idx].b ^= rng.integers(0, 256)
+    if n > 0:
+        for _ in range(rng.integers(0, len(gif.gct) // 2)):
+            idx = rng.integers(0, len(gif.gct))
+            gif.gct[idx].r ^= rng.integers(0, 256)
+            gif.gct[idx].g ^= rng.integers(0, 256)
+            gif.gct[idx].b ^= rng.integers(0, 256)
 
     # do color pertubation for n times
     for i in range(n):        

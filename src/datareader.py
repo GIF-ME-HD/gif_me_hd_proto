@@ -5,6 +5,7 @@ class DataReader:
     def __init__(self, filename, offset=0):
         with open(filename, "rb") as f:
             self.bytez = f.read()
+        self.memview = memoryview(self.bytez)
         self.length = len(self.bytez)
         self.offset = offset
     
