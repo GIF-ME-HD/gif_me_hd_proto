@@ -60,6 +60,7 @@ class GifReader:
                 GifReader.get_ct_size(gif_data.gct_size))
 
         prev_graphic_control = None
+        first = True
         while not self.data_reader.is_done():
             # if end of bytez
             if self.data_reader.peek_byte() == GIF_TRAILER or self.data_reader.offset == len(self.data_reader.bytez)-1:
@@ -74,6 +75,7 @@ class GifReader:
                 # Special case for Graphical Control Extension
                 if isinstance(extension, GraphicsControlExt):
                     prev_graphic_control = extension
+                    first = True
                     continue
                 gif_data.extensions.append(extension)
 
@@ -95,6 +97,10 @@ class GifReader:
                 frame = GifFrame()
                 gif_data.frames.append(frame)
                 frame.graphic_control = prev_graphic_control
+                if not first:
+                    frame.graphic_control.hidden = True
+                else:
+                    frame.graphic_control.hidden = False
 
                 frame.img_descriptor = ImageDescriptor()
                 self.data_reader.advance(1)

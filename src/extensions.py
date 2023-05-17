@@ -57,6 +57,7 @@ class GraphicsControlExt(Extension):
         super().validate_identifier(IDENTIFIER, "Graphics Control Extension")
 
         packed = self.bytez[3]
+        self.hidden = False
         self.transparent_color_flag = is_bit_set(packed, 0)
         self.user_input_flag = is_bit_set(packed, 1)
         self.disposal_method = (packed & 0b000_111_00) >> 2

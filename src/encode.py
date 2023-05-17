@@ -52,7 +52,8 @@ class GifEncoder:
 
         for i, gifframe in enumerate(gif_data.frames):
             # print(f"Encoding Frame {i}")
-            self.bytez += gifframe.graphic_control.to_bytes()
+            if not gifframe.graphic_control.hidden:
+                self.bytez += gifframe.graphic_control.to_bytes()
             self.bytez += gifframe.img_descriptor.to_bytez()
             self.bytez += compressfunc(gifframe.frame_img_data, math.ceil(math.log( 2 ** (gif_data.gct_size+1),2)))
 
