@@ -18,7 +18,7 @@ For Windows, you will probably need to run the `Activate.ps1` script.
 
 Now, install the requirements
 ```
-pip install gif_me_hd_proto/requirements.txt
+pip install -r gif_me_hd_proto/requirements.txt
 ```
 
 Now you can install the library...
