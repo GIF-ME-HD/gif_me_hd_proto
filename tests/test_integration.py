@@ -2,9 +2,8 @@ import os
 import unittest
 
 from PIL import Image
-from encode import GifEncoder
-
-from parse import GifReader
+from gif_me_hd.encode import GifEncoder
+from gif_me_hd.parse import GifReader
 
 DIRECTORY = "../dataset"
 

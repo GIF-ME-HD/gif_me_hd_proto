@@ -3,9 +3,9 @@ import os
 import unittest
 import matplotlib.pyplot as plt
 
-from parse import GifReader
-from data import GifData, GifFrame, RGB
-from encrypt import encrypt
+from gif_me_hd.parse import GifReader
+from gif_me_hd.data import GifData, GifFrame, RGB
+from gif_me_hd.encrypt import encrypt
 
 
 class FileStatistics():
