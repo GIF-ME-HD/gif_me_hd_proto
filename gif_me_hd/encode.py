@@ -26,7 +26,7 @@ class GifEncoder:
         with open(self.filename, "wb") as f:
             f.write(self.bytez)
 
-    def encode(self, gif_data:GifData, compressfunc):
+    def encode(self, gif_data:GifData, compressfunc=compress_cpp):
         self.bytez = DEFAULT_HEADER
 
         # logical screen descriptor

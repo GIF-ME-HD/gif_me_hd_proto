@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import copy
+from gif_me_hd.bitreader import BitReader
 
 CLEAR_CODE = "CC"
 EOI_CODE = "EOI"
@@ -41,7 +42,6 @@ def decompress(bytestream):
 
     cur_code_size = lzw_min_code_size + 1
 
-    from bitreader import BitReader
     # tuple form
     code_stream = BitReader(code_stream)
 

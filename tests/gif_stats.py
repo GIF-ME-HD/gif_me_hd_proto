@@ -1,16 +1,56 @@
 import copy
 import os
 import unittest
+import numpy as np
 import matplotlib.pyplot as plt
 
 from gif_me_hd.parse import GifReader
 from gif_me_hd.data import GifData, GifFrame, RGB
 from gif_me_hd.encrypt import encrypt
+from gif_me_hd.encode import GifEncoder
 
 
 class FileStatistics():
     def __init__(self) -> None:
         pass
+
+    def get_uniformity_graph(self, filename):
+        # if the file exists
+        if os.path.isfile(filename):
+            gif_reader = GifReader(filename)
+            orig_gif_data = gif_reader.parse()
+            
+            indices = []
+            for frame in orig_gif_data.frames:
+                indices += frame.frame_img_data
+
+            fig, ax = plt.subplots()
+            ax.hist(np.array(indices), bins = [_ for _ in range(1+max(indices))])
+
+            plt.title(filename + " - ORIG")
+            plt.show()
+
+            orig_indices = indices[:]
+            indices = []
+            encrypted_gif = encrypt(orig_gif_data, "password123", 1000000)
+            encoder = GifEncoder("test_encrypted.gif")
+            encoder.encode(encrypted_gif)
+            encoder.to_file()
+
+            for frame in encrypted_gif.frames:
+                indices += frame.frame_img_data
+
+
+            fig, ax = plt.subplots()
+            ax.hist(np.array(indices), bins = [_ for _ in range(1+max(indices))])
+            plt.title(filename + " - ENCRYPTED")
+            plt.show()
+
+
+
+        else:
+            raise FileNotFoundError
+
     
     def get_filesize(self, file_path, unit="kb") -> int:
         # if the file exists
@@ -150,4 +190,8 @@ if __name__ == "__main__":
     # statistics of m
     stats = FileStatistics()
     filenames = ["../dataset/sample_1.gif", "../dataset/sample-1.gif", "../dataset/esqueleto.gif"]
+    for file in filenames:
+        stats.get_uniformity_graph(file)
+
     stats.mutated_pixel_stats(filenames)
+
