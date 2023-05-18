@@ -1,6 +1,6 @@
 # Available at setup time due to pyproject.toml
 from pybind11.setup_helpers import Pybind11Extension, build_ext
-from setuptools import setup
+from setuptools import setup, find_packages
 
 __version__ = "0.0.1"
 
@@ -15,7 +15,9 @@ __version__ = "0.0.1"
 
 ext_modules = [
     Pybind11Extension("lzw_gif_cpp",
-        ["src/cpp/lzw_gif_cpp.cpp"],
+        [
+                      "gif_me_hd/cpp/lzw_gif_cpp.cpp"
+         ],
         # Example: passing in the version to the compiled code
         define_macros = [('VERSION_INFO', __version__)],
         ),
@@ -30,6 +32,9 @@ setup(
     description="A program for encrypting GIFs",
     long_description="",
     ext_modules=ext_modules,
+    packages=find_packages(),
+    # py_modules=["gif_me_hd"],
+
     extras_require={"test": "pytest"},
     # Currently, build_ext only provides an optional "highest supported C++
     # level" feature, but in the future it may provide more features.
