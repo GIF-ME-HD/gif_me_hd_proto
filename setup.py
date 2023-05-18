@@ -32,7 +32,7 @@ setup(
     description="A program for encrypting GIFs",
     long_description="",
     ext_modules=ext_modules,
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
     # py_modules=["gif_me_hd"],
 
     extras_require={"test": "pytest"},
