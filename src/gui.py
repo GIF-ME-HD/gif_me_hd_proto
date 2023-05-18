@@ -13,7 +13,7 @@ from data import GifData
 from parse import GifReader
 from encrypt import encrypt
 from encode import GifEncoder
-from cpp.lzw_gif_cpp import compress
+from lzw_gif_cpp import compress
 
 # TODO: Separate out the different tabs into different places and each component to their own function
 class FrameRef(QObject):
