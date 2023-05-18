@@ -1,5 +1,5 @@
 import struct
-from data import RGB
+from gif_me_hd.data import RGB
 
 class DataReader:
     def __init__(self, filename, offset=0):

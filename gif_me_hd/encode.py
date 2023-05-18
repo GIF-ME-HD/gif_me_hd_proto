@@ -1,8 +1,8 @@
 import timeit
-from data import GifData
-from lzw_gif import compress as c1
-from lzw_gif2 import compress as c2
-from lzw_gif3 import compress as c3
+from gif_me_hd.data import GifData
+from gif_me_hd.lzw_gif import compress as c1
+from gif_me_hd.lzw_gif2 import compress as c2
+from gif_me_hd.lzw_gif3 import compress as c3
 
 from lzw_gif_cpp import compress as compress_cpp
 import math

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import struct
 
-from extensions import GraphicsControlExt, Extension
+from gif_me_hd.extensions import GraphicsControlExt, Extension
 
 class GifFrame:
     def __init__(self):

@@ -9,10 +9,10 @@ from qt_material import apply_stylesheet
 
 import math
 
-from data import GifData
-from parse import GifReader
-from encrypt import encrypt
-from encode import GifEncoder
+from gif_me_hd.data import GifData
+from gif_me_hd.parse import GifReader
+from gif_me_hd.encrypt import encrypt
+from gif_me_hd.encode import GifEncoder
 from lzw_gif_cpp import compress
 
 # TODO: Separate out the different tabs into different places and each component to their own function

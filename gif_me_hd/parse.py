@@ -1,8 +1,8 @@
-from datareader import DataReader
-from data import GifData, GifFrame, ImageDescriptor
-from extensions import Extension, GraphicsControlExt
-from utils import is_bit_set, get_sub_block_size
-from lzw_gif3 import decompress
+from gif_me_hd.datareader import DataReader
+from gif_me_hd.data import GifData, GifFrame, ImageDescriptor
+from gif_me_hd.extensions import Extension, GraphicsControlExt
+from gif_me_hd.utils import is_bit_set, get_sub_block_size
+from gif_me_hd.lzw_gif3 import decompress
 
 DEFAULT_HEADER = b"GIF89a"
 GIF_TRAILER = 0x3B

@@ -2,7 +2,7 @@ from hashlib import scrypt
 from numpy.random import Generator
 from randomgen import ChaCha
 from copy import deepcopy
-from data import GifData, GifFrame
+from gif_me_hd.data import GifData, GifFrame
 
 ROUNDS = 12
 def encrypt(gif:GifData, password, n = 100) -> GifData:
