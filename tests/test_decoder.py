@@ -125,6 +125,24 @@ class DecoderTester(unittest.TestCase):
 
         pass
     
+    def test_compression_decompression(self):
+        from gif_me_hd.lzw_gif3 import decompress
+        input_indices = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1,
+                         0, 0, 0, 0, 2, 2, 2, 1, 1, 1, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0,
+                         0, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1,
+                         1]
+        compressed_data = b'\x02\x16\x8c-\x99\x87*\x1c\xdc3\xa0\x02u\xec\x95\xfa\xa8\xde`\x8c\x04\x91L\x01\x00'
+        decompressed_data = decompress(compressed_data)
+        # print(decompressed_data)
+        self.assertEqual(decompressed_data, input_indices)
+
+        # # Future use ceil(log(len(color_table), 2))
+        lzw_min_code_size = compressed_data[0]
+        decompressed_data = input_indices
+        my_compressed_data = compress(decompressed_data, lzw_min_code_size)
+        self.assertEqual(compressed_data, my_compressed_data)
+
+
     
     
     
