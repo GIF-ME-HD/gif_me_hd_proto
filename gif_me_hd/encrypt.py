@@ -7,9 +7,11 @@ from gif_me_hd.data import GifData, GifFrame
 ROUNDS = 12
 def encrypt(gif:GifData, password, n = 100) -> GifData:
     # gif = deepcopy(gif)
+    return encrypt_raw_key(gif, password2key(password, b""))
+
+def encrypt_raw_key(gif:GifData, password: int, n = 100) -> GifData:
     # NOTE: seed the random generator with enc key
-    # TODO: future work, do not make the password the key directly
-    rng = Generator(ChaCha(key=password2key(password, b""), rounds=ROUNDS))     # NOTE: now we asusme password is a integer
+    rng = Generator(ChaCha(key=password, rounds=ROUNDS))     # NOTE: now we asusme password is a integer
     
     total_frames = len(gif.frames)
 
