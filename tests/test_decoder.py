@@ -91,44 +91,82 @@ class DecoderTester(unittest.TestCase):
     #         self.assertTrue(is_subset_of(pillow_gcts[i], gcts[i])) 
 
 
-    def test_malformed_gif_header(self):
-        """ testing for malformed gif header """
-        # NOTE: assumes there is a malformed gif header in the dataset already
-        print(f"\n testing for malformed gif header \n ")
+    # def test_malformed_gif_header(self):
+    #     """ testing for malformed gif header """
+    #     # NOTE: assumes there is a malformed gif header in the dataset already
+    #     print(f"\n testing for malformed gif header \n ")
+
+    #     # loop through each gif file ion malformed directory
+    #     malformed_filenames = os.listdir(f"{DIRECTORY}/malformed_header/")
+    #     malformed_filenames = [filename for filename in malformed_filenames if filename.endswith('.gif')]
+    #     print(f"malformed_filenames: {malformed_filenames}")
+    #     for name in malformed_filenames:
+    #         malformed = False
+    #         try:
+    #             reader = GifReader(f"{DIRECTORY}/malformed_header/{name}")
+    #             gif = reader.parse()
+    #         except Exception as e:
+    #             print(f"Exception: {e}")
+    #             malformed = True
+    #         finally:
+    #             self.assertTrue(malformed)
+        
+    # # # TODO:
+    # def test_valid_extensions(self):
+    #     """ testing for malformed gif header """
+
+    #     pass
+    
+    
+    # # TODO: malform the file extensions
+    def test_malformed_extensions(self):
+        """ testing for malformed extensions (the sub block length of the extension is changed)"""
+
+        print(f"\n testing for malformed extensions \n ")
 
         # loop through each gif file ion malformed directory
-        malformed_filenames = os.listdir(f"{DIRECTORY}/malformed_header/")
+        malformed_filenames = os.listdir(f"{DIRECTORY}/malformed_ext/")
         malformed_filenames = [filename for filename in malformed_filenames if filename.endswith('.gif')]
         print(f"malformed_filenames: {malformed_filenames}")
         for name in malformed_filenames:
             malformed = False
             try:
-                reader = GifReader(f"{DIRECTORY}/malformed_header/{name}.gif")
+                reader = GifReader(f"{DIRECTORY}/malformed_ext/{name}")
                 gif = reader.parse()
             except Exception as e:
                 print(f"Exception: {e}")
                 malformed = True
             finally:
                 self.assertTrue(malformed)
+
+
+    # def test_img_descriptor_dimensions(self):
+    #     # use pillow to get the dimensions of each frame for each gif file
+    #     frame_dimensions = []
+    #     for filename, _ in self.gif_file_datas:
+    #         # Iterate over each frame in the GIF
+    #         with Image.open(f"{DIRECTORY}/{filename}") as im:
+    #             temp = []
+    #             for i in range(im.n_frames):
+    #                 im.seek(i)
+    #                 width, height = im.size
+    #                 temp.append((width, height))
+    #         frame_dimensions.append(temp)
         
-    # # TODO:
-    def test_valid_extensions(self):
-        """ testing for malformed gif header """
+    #     # compare the dimensions of each frame with the parsed gifdata
+    #     for i in range(len(self.gif_file_datas)):
+    #         gif = self.gif_file_datas[i][1]
+    #         for j in range(len(gif.frames)):
+    #             gif_frame_dimensions = frame_dimensions[i][j]
+                
+    #             is_same = gif_frame_dimensions[0] == gif.frames[j].img_descriptor.width and \
+    #                 gif_frame_dimensions[1] == gif.frames[j].img_descriptor.height
+    #             if not is_same:
+    #                 print(f"({gif_frame_dimensions[0]}, {gif_frame_dimensions[1]}) != ({gif.frames[j].img_descriptor.width}, {gif.frames[j].img_descriptor.height})")
+                
+    #             self.assertTrue(is_same)
+        
 
-        pass
-    
-    
-    
-    # # TODO: malform the file extensions
-    def test_malformed_extensions(self):
-        """ testing for malformed extensions """
-
-        pass
-    
-    
-    
-    
-    
 if __name__ == "__main__":
     unittest.main()
 
