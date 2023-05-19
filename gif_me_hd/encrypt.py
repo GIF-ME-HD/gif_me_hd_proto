@@ -14,13 +14,21 @@ def encrypt(gif:GifData, password, n = 100) -> GifData:
     total_frames = len(gif.frames)
 
     if n > 0:
-        for _ in range(rng.integers(0, len(gif.gct) // 2)):
-            idx = rng.integers(0, len(gif.gct))
-            gif.gct[idx].r ^= rng.integers(0, 256)
-            gif.gct[idx].g ^= rng.integers(0, 256)
-            gif.gct[idx].b ^= rng.integers(0, 256)
+        color_table_pertubation(gif, rng)
 
     # do color pertubation for n times
+    indices_data_pertubation(gif, n, total_frames, rng)
+
+    return gif
+
+def color_table_pertubation(gif: GifData, rng):
+    for _ in range(rng.integers(0, len(gif.gct) // 2)):
+        idx = rng.integers(0, len(gif.gct))
+        gif.gct[idx].r ^= rng.integers(0, 256)
+        gif.gct[idx].g ^= rng.integers(0, 256)
+        gif.gct[idx].b ^= rng.integers(0, 256)
+
+def indices_data_pertubation(gif: GifData, n: int, total_frames: int, rng):
     for i in range(n):        
         # get random frame
         frame = gif.frames[
@@ -33,7 +41,6 @@ def encrypt(gif:GifData, password, n = 100) -> GifData:
         # apply pertubation
         apply_color_pertubation(gif, frame, x, y, color_perb)
 
-    return gif
 
 
 # TODO: do not use the password as the encryption key directly
