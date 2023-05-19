@@ -5,8 +5,9 @@ from gif_me_hd.parse import *
 import os
 import random
 import string
+import copy
 
-DATASET = './dataset/'
+DATASET = './test_dataset/'
 class EncryptFunctionTester(unittest.TestCase):
     def test_pass2key_diffpass(self):
         # Test case 1
@@ -30,13 +31,73 @@ class EncryptFunctionTester(unittest.TestCase):
         self.assertEqual(len(keys), len(salts))
 
 class EncryptTester(unittest.TestCase):
-    def setup(self):
+    def setUp(self):
         self.filenames = os.listdir(DATASET)
         self.actual_path = [os.path.join(DATASET, x) for x in self.filenames]
         self.gifs = [GifReader(x).parse() for x in self.actual_path]
 
-    def test_perturbation_change_color(self):
-        pass
+    def test_perturbation_change_color_table(self):
+        # Test case 3
+        # Pertubation of color table
+        from numpy.random import Generator
+        from randomgen import ChaCha
+        from gif_me_hd.data import GifData, RGB
+
+        rng = Generator(ChaCha(key=314159265, rounds=2))
+        sample_gif = GifData()
+
+        old_color_table = [RGB(0,0,0), RGB(2,3,4), RGB(234, 123, 4), RGB(231, 92, 38)]
+        sample_gif.gct = copy.deepcopy(old_color_table)
+
+        color_table_pertubation(sample_gif, rng)
+        # print(sample_gif.gct)
+        # print(old_color_table)
+        self.assertNotEqual(sample_gif.gct, old_color_table)
+
+
+    def test_perturbation_change_indices(self):
+        # Test case 4
+        # Pertubation of pixel indices 
+        from numpy.random import Generator
+        from randomgen import ChaCha
+        from gif_me_hd.data import GifData, GifFrame, ImageDescriptor, RGB
+
+        rng = Generator(ChaCha(key=314159265, rounds=2))
+        sample_gif = GifData()
+
+        old_color_table = [RGB(0,0,0), RGB(2,3,4), RGB(234, 123, 4), RGB(231, 92, 38)]
+        sample_gif.gct = copy.deepcopy(old_color_table)
+        sample_gif.gct_flag = True
+
+        id = ImageDescriptor()
+        id.width = 8
+        id.height = 8
+
+        import random
+        random.seed(42)
+        old_indices = [random.randint(0,100) for _ in range(id.width*id.height)]
+
+        gf = GifFrame()
+        gf.frame_img_data = copy.deepcopy(old_indices)
+        gf.img_descriptor = id
+
+        sample_gif.frames.append(gf) 
+
+        indices_data_pertubation(sample_gif, 1000, len(sample_gif.frames), rng)
+        # print(sample_gif.frames[0].frame_img_data)
+        # print(old_indices)
+        self.assertNotEqual(sample_gif.gct, old_color_table)
+
+    def test_perturbation_change_image(self):
+        # Test case 5
+        # Pertubation from image encrytion
+        for gif_image in self.gifs:
+            old_frame_lst = gif_image.frames[0].frame_img_data[:]
+            old_color_table = copy.deepcopy(gif_image.gct)
+            encrypted_image = encrypt(gif_image, "password1234", 100000)
+            self.assertNotEqual(encrypted_image.frames[0].frame_img_data,
+                                old_frame_lst)
+            self.assertNotEqual(encrypted_image.gct, old_color_table)
 
 
 if __name__ == "__main__":

@@ -64,7 +64,6 @@ class GifReader:
         while not self.data_reader.is_done():
             # if end of bytez
             if self.data_reader.peek_byte() == GIF_TRAILER or self.data_reader.offset == len(self.data_reader.bytez)-1:
-                print("DONE")
                 self.data_reader.advance(1)
 
             # TODO: handles all extension, by saving the bytez associated with the extensions first
