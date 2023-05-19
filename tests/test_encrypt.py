@@ -42,11 +42,13 @@ class EncryptTester(unittest.TestCase):
         from numpy.random import Generator
         from randomgen import ChaCha
         from gif_me_hd.data import GifData, RGB
+        import random
+        random.seed(42)
 
         rng = Generator(ChaCha(key=314159265, rounds=2))
         sample_gif = GifData()
 
-        old_color_table = [RGB(0,0,0), RGB(2,3,4), RGB(234, 123, 4), RGB(231, 92, 38)]
+        old_color_table = [RGB(random.randint(0,255),random.randint(0, 255), random.randint(0, 255)) for _ in range(256)]
         sample_gif.gct = copy.deepcopy(old_color_table)
 
         color_table_pertubation(sample_gif, rng)
@@ -62,19 +64,20 @@ class EncryptTester(unittest.TestCase):
         from randomgen import ChaCha
         from gif_me_hd.data import GifData, GifFrame, ImageDescriptor, RGB
 
+        import random
+        random.seed(42)
+
         rng = Generator(ChaCha(key=314159265, rounds=2))
         sample_gif = GifData()
 
-        old_color_table = [RGB(0,0,0), RGB(2,3,4), RGB(234, 123, 4), RGB(231, 92, 38)]
+        old_color_table = [RGB(random.randint(0,255),random.randint(0, 255), random.randint(0, 255)) for _ in range(256)]
         sample_gif.gct = copy.deepcopy(old_color_table)
         sample_gif.gct_flag = True
+        sample_gif.gct_size = 7
 
         id = ImageDescriptor()
         id.width = 8
         id.height = 8
-
-        import random
-        random.seed(42)
         old_indices = [random.randint(0,100) for _ in range(id.width*id.height)]
 
         gf = GifFrame()
@@ -86,7 +89,7 @@ class EncryptTester(unittest.TestCase):
         indices_data_pertubation(sample_gif, 1000, len(sample_gif.frames), rng)
         # print(sample_gif.frames[0].frame_img_data)
         # print(old_indices)
-        self.assertNotEqual(sample_gif.gct, old_color_table)
+        self.assertNotEqual(sample_gif.frames[0].frame_img_data, old_indices)
 
     def test_perturbation_change_image(self):
         # Test case 5
@@ -94,7 +97,7 @@ class EncryptTester(unittest.TestCase):
         for gif_image in self.gifs:
             old_frame_lst = gif_image.frames[0].frame_img_data[:]
             old_color_table = copy.deepcopy(gif_image.gct)
-            encrypted_image = encrypt(gif_image, "password1234", 100000)
+            encrypted_image = encrypt(gif_image, "password123", 100000)
             self.assertNotEqual(encrypted_image.frames[0].frame_img_data,
                                 old_frame_lst)
             self.assertNotEqual(encrypted_image.gct, old_color_table)
