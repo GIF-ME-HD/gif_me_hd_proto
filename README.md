@@ -21,6 +21,11 @@ Now, install the requirements
 pip install -r gif_me_hd_proto/requirements.txt
 ```
 
+We have to 
+```
+python setup.py install
+```
+
 Now you can install the library...
 ```
 pip install gif_me_hd_proto

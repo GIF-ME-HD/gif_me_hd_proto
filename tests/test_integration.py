@@ -10,8 +10,8 @@ DIRECTORY = "../dataset/"
 
 def is_gif_corrupted(file_path):
     try:
-        with Image.open(file_path) as img:
-            img.verify()
+        img = Image.open(file_path)
+        img.close()
         return False
     except (IOError, SyntaxError):
         return True
@@ -49,9 +49,12 @@ class IntegrationTest(unittest.TestCase):
 
         # ask Pillow library if the output files are valid
         out_filenames = os.listdir("./out/")
+        any_corrupted = False;
         for out_filename in out_filenames:
-            is_gif_corrupted(out_filename)
-
+            any_corrupted = any_corrupted or is_gif_corrupted(f"./out/{out_filename}")
+            if any_corrupted:
+                print(f"Corrupted file: {out_filename}")
+            
         # remove all the files in ./out/
         # Remove all files within the directory
         for filename in out_filenames:
@@ -59,6 +62,7 @@ class IntegrationTest(unittest.TestCase):
                 os.remove(f"./out/{filename}")
         os.rmdir("./out/")
         
+        self.assertFalse(any_corrupted)
 
 if __name__ == "__main__":
     unittest.main()

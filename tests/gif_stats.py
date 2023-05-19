@@ -12,6 +12,7 @@ from lzw_gif_cpp import compress
 
 FILENAMES = ["../dataset/sample_1.gif", "../dataset/sample-1.gif", "../dataset/esqueleto.gif"]
 
+
 class GifStatistics():
     def __init__(self, N_lst, password, filenames=FILENAMES) -> None:
         # load all the filenames into GifData objects
@@ -102,8 +103,6 @@ class GifStatistics():
             plt.grid(True)
             plt.show()
 
-
-
         # NOTE: calculate statistics for each giffile
         all_stats = []
         
@@ -116,9 +115,7 @@ class GifStatistics():
                 mutated_pixel_count = count_mutated_pixels(self.gifdatas[i], self.encrypted_gifdatas[i][j][0])
                 # store the statistics
                 file_stats.append((self.N_lst[j], mutated_pixel_count))
-                
             all_stats.append((self.filenames[i], self.gifdatas[i], file_stats))
-        
         print(f"all_stats: {all_stats}")
         # TODO: plotting
         plot(all_stats, self.N_lst)
