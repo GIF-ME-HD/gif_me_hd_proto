@@ -32,9 +32,24 @@ setup(
     description="A program for encrypting GIFs",
     long_description="",
     ext_modules=ext_modules,
+    install_requires=[
+        "autopep8==2.0.2",
+        "imageio==2.28.1",
+        "Jinja2==3.1.2",
+        "MarkupSafe==2.1.2",
+        "numpy==1.24.3",
+        "Pillow==9.5.0",
+        "pybind11==2.10.4",
+        "pycodestyle==2.10.0",
+        "PySide6==6.5.0",
+        "PySide6-Addons==6.5.0",
+        "PySide6-Essentials==6.5.0",
+        "qt-material==2.14",
+        "randomgen==1.23.1",
+        "shiboken6==6.5.0"
+    ],
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
     # py_modules=["gif_me_hd"],
-
     extras_require={"test": "pytest"},
     # Currently, build_ext only provides an optional "highest supported C++
     # level" feature, but in the future it may provide more features.
