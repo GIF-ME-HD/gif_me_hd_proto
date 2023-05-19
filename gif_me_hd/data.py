@@ -78,6 +78,22 @@ class RGB:
     def __repr__(self):
         return str(self)
 
+    def __eq__(self, other_rgb: RGB) -> bool:
+        return self.r == other_rgb.r and self.g == other_rgb.g and self.b == other_rgb.b
+
+    
+    def __gt__(self, other_rgb: RGB):
+        if self.r > other_rgb.r:
+            return True
+        elif self.g > other_rgb.g:
+            return True
+        elif self.b > other_rgb.b:
+            return True
+        return False
+    
+    def __lt__(self, other_rgb: RGB):
+        return not self.__gt__(other_rgb) and not self.__eq__(other_rgb)
+
     def to_byte_string(self):
         return struct.pack("BBB", self.r, self.g, self.b)
 
