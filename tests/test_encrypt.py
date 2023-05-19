@@ -1,11 +1,13 @@
 import unittest
 from gif_me_hd.encrypt import *
+from gif_me_hd.parse import *
 
+import os
 import random
 import string
 
-
-class EncryptTester(unittest.TestCase):
+DATASET = './dataset/'
+class EncryptFunctionTester(unittest.TestCase):
     def test_pass2key_diffpass(self):
         # Test case 1
         # Different passwords with same salt provide different key
@@ -26,6 +28,16 @@ class EncryptTester(unittest.TestCase):
         for salt in salts:
             keys.add(password2key(password, salt))
         self.assertEqual(len(keys), len(salts))
+
+class EncryptTester(unittest.TestCase):
+    def setup(self):
+        self.filenames = os.listdir(DATASET)
+        self.actual_path = [os.path.join(DATASET, x) for x in self.filenames]
+        self.gifs = [GifReader(x).parse() for x in self.actual_path]
+
+    def test_perturbation_change_color(self):
+        pass
+
 
 if __name__ == "__main__":
     unittest.main()
