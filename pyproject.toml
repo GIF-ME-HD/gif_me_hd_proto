@@ -21,3 +21,4 @@ extend-ignore = [
   "E501",   # Line too long
 ]
 target-version = "py37"
+
