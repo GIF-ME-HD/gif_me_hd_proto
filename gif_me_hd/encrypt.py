@@ -16,19 +16,26 @@ def encrypt_raw_key(gif:GifData, password: int, n = 100) -> GifData:
     total_frames = len(gif.frames)
 
     if n > 0:
-        color_table_pertubation(gif, rng)
+        color_table_pertubation(gif, rng, gif.frames)
 
     # do color pertubation for n times
     indices_data_pertubation(gif, n, total_frames, rng)
 
     return gif
 
-def color_table_pertubation(gif: GifData, rng):
-    for _ in range(rng.integers(0, len(gif.gct) // 2)):
-        idx = rng.integers(0, len(gif.gct))
-        gif.gct[idx].r ^= rng.integers(0, 256)
-        gif.gct[idx].g ^= rng.integers(0, 256)
-        gif.gct[idx].b ^= rng.integers(0, 256)
+def color_table_pertubation(gif: GifData, rng, frames):
+    gct_table = gif.gct
+    lct_tables = []
+    for frame in frames:
+        if frame.img_descriptor.lct_flag:
+            lct_tables.append(frame.img_descriptor.lct)
+    all_tables = [gct_table] + lct_tables
+    for cur_table in all_tables:
+        for _ in range(rng.integers(0, len(gif.gct) // 2)):
+            idx = rng.integers(0, len(gif.gct))
+            cur_table[idx].r ^= rng.integers(0, 256)
+            cur_table[idx].g ^= rng.integers(0, 256)
+            cur_table[idx].b ^= rng.integers(0, 256)
 
 def indices_data_pertubation(gif: GifData, n: int, total_frames: int, rng):
     for i in range(n):        
