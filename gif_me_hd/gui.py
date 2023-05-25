@@ -141,8 +141,9 @@ class DetailsTab(QWidget):
         self.frame_label = QLabel("Cur Frame: 0")
         img_desc = self.parsed_gif.frames[0].img_descriptor
         self.frame_dim_label = QLabel(f"Width:Height : {img_desc.width, img_desc.height}")
+        self.left_top_label = QLabel(f"Left:Top : {img_desc.left, img_desc.top}")
         gce = self.parsed_gif.frames[0].graphic_control
-        self.frame_delay = QLabel(f"Delay : {str(gce.delay_time * 10) + "ms" if gce is not None and gce.delay_time > 0 else '10ms(default)'}")
+        self.frame_delay = QLabel(f"Delay : {(str(gce.delay_time * 10)) if gce is not None and gce.delay_time > 0 else '(default) 10'}ms")
         self.transparency_index = QLabel(f"Transparent Index : {gce.transparent_color_index if gce is not None and gce.transparent_color_flag else 'None'}")
         self.num_frames = QLabel(f"Number of Frames: {len(self.parsed_gif.frames)}")
 
@@ -204,6 +205,7 @@ class DetailsTab(QWidget):
         vboxLayout1.addWidget(self.filename_label)
         vboxLayout1.addWidget(self.frame_label)
         vboxLayout1.addWidget(self.frame_dim_label)
+        vboxLayout1.addWidget(self.left_top_label)
         vboxLayout1.addWidget(self.frame_delay)
         vboxLayout1.addWidget(self.transparency_index)
         vboxLayout1.addWidget(self.num_frames)
@@ -225,8 +227,9 @@ class DetailsTab(QWidget):
         self.frame_label.setText(f'Cur Frame: {cur_frame}')
         img_desc = self.parsed_gif.frames[cur_frame].img_descriptor
         self.frame_dim_label.setText(f"Width:Height : {img_desc.width, img_desc.height}")
+        self.left_top_label.setText(f"Left:Top : {img_desc.left, img_desc.top}")
         gce = self.parsed_gif.frames[cur_frame].graphic_control
-        self.frame_delay.setText(f"Delay : {gce.delay_time if gce is not None and gce.delay_time > 0 else '100(default)'}")
+        self.frame_delay.setText(f"Delay : {(str(gce.delay_time * 10)) if gce is not None and gce.delay_time > 0 else '(default) 10'}ms")
         self.transparency_index.setText(f"Transparent Index : {gce.transparent_color_index if gce is not None and gce.transparent_color_flag else 'None'}")
 
         # LCT
