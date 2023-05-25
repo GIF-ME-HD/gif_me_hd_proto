@@ -142,7 +142,7 @@ class DetailsTab(QWidget):
         img_desc = self.parsed_gif.frames[0].img_descriptor
         self.frame_dim_label = QLabel(f"Width:Height : {img_desc.width, img_desc.height}")
         gce = self.parsed_gif.frames[0].graphic_control
-        self.frame_delay = QLabel(f"Delay : {gce.delay_time if gce is not None and gce.delay_time > 0 else '100(default)'}")
+        self.frame_delay = QLabel(f"Delay : {str(gce.delay_time * 10) + "ms" if gce is not None and gce.delay_time > 0 else '10ms(default)'}")
         self.transparency_index = QLabel(f"Transparent Index : {gce.transparent_color_index if gce is not None and gce.transparent_color_flag else 'None'}")
         self.num_frames = QLabel(f"Number of Frames: {len(self.parsed_gif.frames)}")
 
