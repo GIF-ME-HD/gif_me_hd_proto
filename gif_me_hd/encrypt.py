@@ -5,9 +5,9 @@ from copy import deepcopy
 from gif_me_hd.data import GifData, GifFrame
 
 ROUNDS = 12
-def encrypt(gif:GifData, password, n = 100) -> GifData:
+def encrypt(gif:GifData, password, n = 100,salt=b"") -> GifData:
     # gif = deepcopy(gif)
-    return encrypt_raw_key(gif, password2key(password, b""))
+    return encrypt_raw_key(gif, password2key(password, salt), n)
 
 def encrypt_raw_key(gif:GifData, password: int, n = 100) -> GifData:
     # NOTE: seed the random generator with enc key
